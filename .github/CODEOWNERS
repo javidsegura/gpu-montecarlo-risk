@@ -1,0 +1,30 @@
+# Global code owners - all team members for general oversight
+* @javierdsegura @Irinaizq @aallendez @Lain-21 @Catebros
+
+# Data handling and input/output
+/src/data/ @Catebros
+
+# CUDA GPU acceleration
+/src/cuda/ @javierdsegura
+
+# Common utilities and shared code
+/src/common/ @Irinaizq
+
+# MPI distributed computing
+/src/mpi/ @aallendez
+
+# OpenMP thread-level parallelism
+/src/openmp/ @Lain-21
+
+# Build system (requires lead approval)
+CMakeLists.txt @javierdsegura
+Makefile @javierdsegura
+
+# Documentation (all team members can contribute)
+README.md  @Irinaizq
+CONTRIBUTING.md  @Irinaizq
+docs/  @Irinaizq
+
+# CI/CD and GitHub workflows (requires lead approval)
+.github/workflows/ @javierdsegura
+.github/ @javierdsegura

@@ -1,0 +1,296 @@
+# Compiled Object files
+*.o
+*.obj
+*.lo
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.bin
+monte_carlo_demo
+test_runner
+benchmark_runner
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+*.ilk
+*.map
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+build/
+Build/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.orig
+*.rej
+
+# CUDA specific
+*.cubin
+*.fatbin
+*.ptx
+*.cudafe1.c
+*.cudafe2.c
+*.cudafe1.cpp
+*.cudafe2.cpp
+*.hash
+*.cpp1.ii
+*.cpp2.ii
+*.cpp3.ii
+*.cpp4.ii
+*.gpu
+*.cudafe1.gpu
+*.cudafe2.gpu
+*.fatbin.c
+*.cuda.cpp
+*.cuda.c
+*.cuda.fatbin
+*.cuda.fatbin.c
+*.linkinfo
+
+# NVIDIA Profiling
+*.qdrep
+*.qdstrm
+*.nsight-cuprof-report
+*.nvprof
+nsight-systems-*.qdrep
+
+# MPI specific
+*.pmi_proxy
+*.pmi_rank
+*.pmi_id
+core.*
+mpirun_*
+
+# OpenMP
+*.omp
+
+# Performance profiling
+*.prof
+*.gprof
+*.callgrind
+*.cachegrind
+*.massif
+*.helgrind
+*.drd
+*.exp
+*.exp-*
+*.gcda
+*.gcno
+*.gcov
+
+# Valgrind
+vgcore.*
+*.vglog
+
+# Intel specific
+*.dyn
+*.dpi
+*.tmp
+*.log
+*.optrpt
+*.par
+*.par-report
+*.pset
+*.pset-report
+
+# Documentation build
+docs/_build/
+docs/build/
+*.pdf
+*.dvi
+*.aux
+*.toc
+*.out
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+
+# Python (if used for scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Data files (common in Monte Carlo projects)
+*.dat
+*.csv
+*.h5
+*.hdf5
+*.nc
+*.npy
+*.npz
+data/
+results/
+output/
+simulation_results/
+benchmark_data/
+
+# Large binary files
+*.bin
+*.dat
+*.raw
+*.img
+*.iso
+
+# Backup files
+*.backup
+*.old
+*.orig
+*.save
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Windows specific
+*.lnk
+*.url
+
+# Linux specific
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Package managers
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+*.7z
+
+# Configuration files with sensitive data
+config.local
+*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Test coverage
+coverage/
+*.gcov
+*.info
+lcov.info
+
+# Static analysis
+*.sarif
+cppcheck-results.xml
+scan-build-results/
+
+# Memory check results
+memcheck-results/
+massif-results/
+
+# Benchmark results
+benchmark_results/
+performance_logs/
+*.perf
+
+# CUDA compilation artifacts
+*.fatbin.c
+*.cubin.c
+*.ptx.c
+
+# NVIDIA Nsight
+.nsight-cuprof/
+.nsight-systems/
+
+# Slurm (if using HPC clusters)
+slurm-*.out
+*.slurm
+
+# PBS (if using HPC clusters)
+*.pbs
+*.o*
+*.e*
+
+# Module files (if using environment modules)
+*.mod
+
+# Fortran (if used)
+*.mod
+*.smod
+
+# Archive files
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.zip
+*.rar
+*.7z
+
+# Large simulation outputs
+simulation_*.out
+mc_results_*.dat
+option_prices_*.csv
+risk_metrics_*.json
+
+# GPU memory dumps (if debugging)
+gpu_memory_*.dump
+
+# Profiling databases
+*.sqlite3
+*.db
+
+# Compiler specific
+*.d
+*.dep
+
+# Make dependencies
+.deps/
+.dependencies
+
+# Auto-generated files
+*.generated.*
+auto_*

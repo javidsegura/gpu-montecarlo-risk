@@ -1,0 +1,95 @@
+# This file documents the PR enforcement rules for the project
+# These rules should be configured in GitHub repository settings
+
+name: PR Enforcement Configuration
+
+# Branch Protection Rules (configure in GitHub Settings > Branches)
+branch_protection_rules:
+  main:
+    required_status_checks:
+      strict: true
+      contexts:
+        - "PR Validation"
+        - "Code Quality Checks"
+        - "Build and Test"
+        - "Performance Impact Check"  # Only for performance PRs
+    enforce_admins: true
+    required_pull_request_reviews:
+      required_approving_review_count: 2
+      dismiss_stale_reviews: true
+      require_code_owner_reviews: true
+    restrictions:
+      users: []
+      teams: []
+    allow_force_pushes: false
+    allow_deletions: false
+
+  develop:
+    required_status_checks:
+      strict: true
+      contexts:
+        - "PR Validation"
+        - "Code Quality Checks"
+        - "Build and Test"
+    enforce_admins: false
+    required_pull_request_reviews:
+      required_approving_review_count: 1
+      dismiss_stale_reviews: true
+    restrictions:
+      users: []
+      teams: []
+    allow_force_pushes: false
+    allow_deletions: false
+
+# PR Template Requirements
+pr_template_requirements:
+  required_sections:
+    - "## Description"
+    - "## Type of Change"
+    - "## Technical Details"
+    - "## Testing"
+    - "## Performance Impact"
+  
+  required_checkboxes:
+    - "My code follows the style guidelines of this project"
+    - "I have performed a self-review of my own code"
+    - "I have added tests that prove my fix is effective"
+    - "New and existing unit tests pass locally with my changes"
+    - "I have checked performance impact and documented results"
+    - "I have verified memory management (no leaks, proper CUDA cleanup)"
+
+  performance_requirements:
+    - "Expected Speedup must be specified"
+    - "Memory Usage impact must be documented"
+    - "Benchmark results must be included for performance changes"
+    - "Scalability testing required for MPI/OpenMP changes"
+
+# Automated Checks
+automated_checks:
+  - "PR template validation"
+  - "Code style compliance"
+  - "Static analysis (cppcheck)"
+  - "Build verification"
+  - "Test execution"
+  - "Performance impact validation (for performance PRs)"
+  - "Memory leak detection"
+  - "CUDA compilation check"
+
+# Review Requirements
+review_requirements:
+  core_algorithm_changes:
+    required_reviewers: 2
+    code_owner_required: true
+    performance_review_required: true
+  
+  performance_changes:
+    required_reviewers: 2
+    performance_team_review_required: true
+  
+  documentation_changes:
+    required_reviewers: 1
+    code_owner_required: false
+  
+  bug_fixes:
+    required_reviewers: 1
+    code_owner_required: true
