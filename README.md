@@ -82,13 +82,6 @@ We provide structured templates for:
 - **GPUs**: NVIDIA GPUs with CUDA Compute Capability 6.0+
 - **Memory**: Minimum 8GB RAM, 4GB GPU memory recommended
 
-## 📚 Documentation
-
-- [Contributing Guidelines](CONTRIBUTING.md)
-- [Performance Optimization Guide](docs/performance.md)
-- [API Reference](docs/api.md)
-- [Algorithm Documentation](docs/algorithms.md)
-
 ## 🔬 Research & Development
 
 This project focuses on:
