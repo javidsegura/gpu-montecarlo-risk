@@ -28,14 +28,14 @@ Welcome to the GPU-accelerated Monte Carlo securities project! This document pro
    cd gpu-montecarlo-risk
    ```
 
-2. Build the project:
+2. Build the project [still undefined]:
    ```bash
    mkdir build && cd build
    cmake ..
    make -j$(nproc)
    ```
 
-3. Run tests:
+3. Run tests [still undefined]:
    ```bash
    make test
    ```
