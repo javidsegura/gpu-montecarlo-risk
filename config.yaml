@@ -1,0 +1,37 @@
+# Monte Carlo Risk Simulation Configuration
+
+model_name: "gpu-montecarlo-risk"
+
+# Data parameters
+data:
+  start: "2015-01-01"
+  end: "2025-01-01"
+  train_ratio: 0.7
+  indices:
+    - STOXX50E: "^STOXX50E"
+    - CAC40: "^FCHI"
+    - DAX: "^GDAXI"
+    - FTSE100: "^FTSE"
+    - FTSEMIB: "FTSEMIB.MI"
+    - IBEX35: "^IBEX"
+    - SMI: "^SSMI"
+    - AEX: "^AEX"
+    - BEL20: "^BFX"
+
+# Simulation parameters
+simulation:
+  N: 9                  # Number of assets
+  k: 5                  # Crash threshold (k assets below threshold x)
+  x: 0.02               # Return threshold (2%)
+  M: 100000             # Number of Monte Carlo trials
+
+# CSV file paths
+csv:
+  mu_file: "mu.csv"
+  sigma_file: "Sigma.csv"
+  data_dir: "./"
+
+# Results and metadata
+results:
+  actual_freq: 0.026912  # Actual crash probability from test data (computed by preprocessing)
+  comment: "9 European stock indices, 2015-2025 data"

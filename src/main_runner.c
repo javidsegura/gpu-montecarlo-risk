@@ -1,10 +1,13 @@
 // Main entry point for running Monte Carlo simulations with different implementations
 // Supports: Serial, OpenMP (future), CUDA (future)
+// Reads simulation parameters from config.yaml
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "model_interface.h"
+#include "config.h"
+#include "csv_io.h"
 
 extern ModelFunctions get_serial_model(void);
 extern ModelFunctions get_openmp_model(void);
@@ -39,15 +42,17 @@ void make_clean(MonteCarloResult *result) {
 int main() {
     printf("Monte Carlo Financial Risk Simulation\n\n");
 
-    // -----------------------------------------------------------------------
-    // ALL PARAMATERS AND HARDCODED VALS -> TODO read data and params
-    // Simulation parameters (matching Python)
-    int N = 10;           // Number of assets
-    int k = 5;            // Crash threshold
-    double x = 0.02;      // Return threshold (2%)
-    int M = 100000;       // Number of trials
-    double rho = 0.3;     // Correlation coefficient
-    double variance = 0.04;
+    // Load configuration from YAML
+    SimulationConfig config;
+    if (load_config("config.yaml", &config) != 0) {
+        fprintf(stderr, "Error: Failed to load config.yaml\n");
+        return 1;
+    }
+
+    printf("Configuration loaded:\n");
+    printf("  N=%d, k=%d, x=%.4f, M=%d\n", config.N, config.k, config.x, config.M);
+    printf("  mu_file=%s, sigma_file=%s\n", config.mu_file, config.sigma_file);
+    printf("  Comment: %s\n\n", config.comment);
 
     // Initialize parameters
     MonteCarloParams *params = (MonteCarloParams *)malloc(sizeof(MonteCarloParams));
@@ -56,26 +61,24 @@ int main() {
         return 1;
     }
 
-    params->N = N;
-    params->k = k;
-    params->x = x;
-    params->M = M;
-    params->mu = gsl_vector_calloc(N);
+    params->N = config.N;
+    params->k = config.k;
+    params->x = config.x;
+    params->M = config.M;
 
-    params->Sigma = gsl_matrix_alloc(N, N);
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            if (i == j) {
-                gsl_matrix_set(params->Sigma, i, j, variance);
-            } else {
-                gsl_matrix_set(params->Sigma, i, j, rho * variance);
-            }
-        }
+    // Load mu and Sigma from CSV files
+    int ret = read_csv_parameters(config.mu_file, config.sigma_file, config.N,
+                                   &params->mu, &params->Sigma);
+    if (ret != 0) {
+        fprintf(stderr, "Error: Failed to load CSV files (error code: %d)\n", ret);
+        free(params);
+        return 1;
     }
+
+    printf("Parameters loaded from CSV files successfully\n\n");
 
     // Models to run - TODO: later read from config
     const char *models_to_run[] = {"serial", "openmp"};
-    // --------------------------------------------------------------------
     
     int num_models = sizeof(models_to_run) / sizeof(models_to_run[0]);
 
