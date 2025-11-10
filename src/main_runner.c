@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "model_interface.h"
+#include "utilities/load_binary.h"
+#include "utilities/load_config.h"
 
 extern ModelFunctions get_serial_model(void);
 extern ModelFunctions get_openmp_model(void);
@@ -39,20 +41,51 @@ void make_clean(MonteCarloResult *result) {
 int main() {
     printf("Monte Carlo Financial Risk Simulation\n\n");
 
-    // -----------------------------------------------------------------------
-    // ALL PARAMATERS AND HARDCODED VALS -> TODO read data and params
-    // Simulation parameters (matching Python)
-    int N = 10;           // Number of assets
-    int k = 5;            // Crash threshold
-    double x = 0.02;      // Return threshold (2%)
-    int M = 100000;       // Number of trials
-    double rho = 0.3;     // Correlation coefficient
-    double variance = 0.04;
+    const char *data_dir = "../data";
+
+    printf("Loading parameters from binary files...\n");
+
+    // Load mu and Sigma from binary files
+    gsl_vector *mu = load_mu_binary("data/mu.bin");
+    gsl_matrix *Sigma = load_sigma_binary("data/sigma.bin");
+
+    if (!mu || !Sigma) {
+        fprintf(stderr, "Error: Failed to load binary files. Run Python preprocessing first.\n");
+        if (mu) gsl_vector_free(mu);
+        if (Sigma) gsl_matrix_free(Sigma);
+        return 1;
+    }
+
+    int N = mu->size;  // Number of assets
+
+    // Load configuration parameters from config.yaml
+    ConfigParams config;
+    if (load_config("config.yaml", &config) != 0) {
+        fprintf(stderr, "Error: Failed to load config.yaml. Using default values.\n");
+        config.M = 100000;
+        config.x = 0.02;
+        config.k = 5;
+    }
+
+    int k = config.k;
+    double x = config.x;
+    int M = config.M;
+
+    printf("\nSimulation Configuration:\n");
+    printf("  Number of assets (N): %d\n", N);
+    printf("  Crash threshold (k): %d\n", k);
+    printf("  Return threshold (x): %.2f%%\n", x * 100);
+    printf("  Number of trials (M): %d\n", M);
+
+    // Models to run - TODO: later read from config
+    const char *models_to_run[] = {"serial", "openmp"};
 
     // Initialize parameters
     MonteCarloParams *params = (MonteCarloParams *)malloc(sizeof(MonteCarloParams));
     if (!params) {
         fprintf(stderr, "Error: Failed to allocate parameters\n");
+        gsl_vector_free(mu);
+        gsl_matrix_free(Sigma);
         return 1;
     }
 
@@ -60,23 +93,9 @@ int main() {
     params->k = k;
     params->x = x;
     params->M = M;
-    params->mu = gsl_vector_calloc(N);
+    params->mu = mu;
+    params->Sigma = Sigma;
 
-    params->Sigma = gsl_matrix_alloc(N, N);
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            if (i == j) {
-                gsl_matrix_set(params->Sigma, i, j, variance);
-            } else {
-                gsl_matrix_set(params->Sigma, i, j, rho * variance);
-            }
-        }
-    }
-
-    // Models to run - TODO: later read from config
-    const char *models_to_run[] = {"serial", "openmp"};
-    // --------------------------------------------------------------------
-    
     int num_models = sizeof(models_to_run) / sizeof(models_to_run[0]);
 
     // Run all models

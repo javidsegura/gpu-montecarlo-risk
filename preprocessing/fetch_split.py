@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 
-def fetch_and_split(indices, start="2015-01-01", end="2025-01-01", train_ratio=0.7):
+def fetch_and_split(indices:dict, start="2015-01-01", end="2025-01-01", train_ratio=0.7):
     """
     Download market data and split into train/test sets.
 
@@ -21,7 +21,9 @@ def fetch_and_split(indices, start="2015-01-01", end="2025-01-01", train_ratio=0
     print(f"\nDownloading index data from Yahoo Finance...")
     print(f"  Date range: {start} to {end}")
 
-    data = yf.download(list(indices.values()),start=start,end=end,auto_adjust=True)["Close"]
+    tickers = list(indices.values())
+
+    data = yf.download(tickers, start=start, end=end, auto_adjust=True)["Close"]
 
     # Clean data
     data = data.dropna(axis=1, how='all')
