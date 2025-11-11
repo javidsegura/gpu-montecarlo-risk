@@ -3,7 +3,7 @@
 // OPTIMIZATION STRATEGY:
 // 1. Thread-local workspace: Allocate Z and R vectors ONCE per thread (not per iteration)
 // 2. Static scheduling: Better cache locality and lower overhead than dynamic: Monte Carlo trials have uniform cost, no load balancing needed
-// 3. Per-thread RNGs
+// 3. Single shared RNG with critical section
 // 4. Reduction clause
 
 #include <stdio.h>
@@ -21,11 +21,11 @@
 // OpenMP model state
 typedef struct {
     gsl_matrix *L;          // Cholesky decomposition (shared by all threads)
-    gsl_rng **rng_array;    // Array of RNGs, one per thread
+    gsl_rng *rng;           // Single shared RNG (protected by critical section)
     int num_threads;
 } OpenMPModelState;
 
-// Initialize OpenMP model: Cholesky decomposition + per-thread RNG setup
+// Initialize OpenMP model: Cholesky decomposition + shared RNG setup
 static int openmp_init(MonteCarloParams *params, void **model_state) {
     OpenMPModelState *state = (OpenMPModelState *)malloc(sizeof(OpenMPModelState));
     if (!state) {
@@ -34,7 +34,7 @@ static int openmp_init(MonteCarloParams *params, void **model_state) {
     }
 
     state->num_threads = omp_get_max_threads();
-    printf("Using %d OpenMP threads\n", state->num_threads);
+    printf("Using %d OpenMP threads with shared RNG\n", state->num_threads);
 
     // Precompute Cholesky decomposition (shared by all threads)
     state->L = gsl_matrix_alloc(params->N, params->N);
@@ -53,19 +53,15 @@ static int openmp_init(MonteCarloParams *params, void **model_state) {
         return -1;
     }
 
-    // Initialize one RNG per thread 
-    state->rng_array = (gsl_rng **)malloc(state->num_threads * sizeof(gsl_rng *));
-    if (!state->rng_array) {
-        fprintf(stderr, "Error: Failed to allocate RNG array\n");
+    // Initialize single shared RNG
+    state->rng = gsl_rng_alloc(gsl_rng_mt19937);
+    if (!state->rng) {
+        fprintf(stderr, "Error: Failed to allocate RNG\n");
         gsl_matrix_free(state->L);
         free(state);
         return -1;
     }
-
-    for (int i = 0; i < state->num_threads; i++) {
-        state->rng_array[i] = gsl_rng_alloc(gsl_rng_mt19937);
-        gsl_rng_set(state->rng_array[i], params->random_seed);  // Configurable seed
-    }
+    gsl_rng_set(state->rng, params->random_seed);  // Configurable seed
 
     *model_state = state;
     return 0;
@@ -73,14 +69,16 @@ static int openmp_init(MonteCarloParams *params, void **model_state) {
 
 // Run a single trial - thread-safe version using pre-allocated thread-local vectors
 // Called from within parallel loop with thread-local workspace
-static int openmp_run_trial(void *model_state, MonteCarloParams *params, 
+static int openmp_run_trial(void *model_state, MonteCarloParams *params,
                             gsl_vector *Z, gsl_vector *R, int *S_out) {
     OpenMPModelState *state = (OpenMPModelState *)model_state;
-    int thread_id = omp_get_thread_num();
 
-    // Generate N independent standard normal variates (using thread's RNG)
-    for (int i = 0; i < params->N; i++) {
-        gsl_vector_set(Z, i, gsl_ran_gaussian(state->rng_array[thread_id], 1.0));
+    // Generate N independent standard normal variates (using shared RNG with critical section)
+    #pragma omp critical
+    {
+        for (int i = 0; i < params->N; i++) {
+            gsl_vector_set(Z, i, gsl_ran_gaussian(state->rng, 1.0));
+        }
     }
 
     // Transform to correlated returns: R = mu + L*Z
@@ -99,16 +97,11 @@ static int openmp_run_trial(void *model_state, MonteCarloParams *params,
     return 0;
 }
 
-// Cleanup internal model state (RNGs, Cholesky)
+// Cleanup internal model state (RNG, Cholesky)
 static void openmp_cleanup_state(void *model_state) {
     if (model_state) {
         OpenMPModelState *state = (OpenMPModelState *)model_state;
-        if (state->rng_array) {
-            for (int i = 0; i < state->num_threads; i++) {
-                if (state->rng_array[i]) gsl_rng_free(state->rng_array[i]);
-            }
-            free(state->rng_array);
-        }
+        if (state->rng) gsl_rng_free(state->rng);
         if (state->L) gsl_matrix_free(state->L);
         free(state);
     }
@@ -127,7 +120,7 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
         return -1;
     }
 
-    // STEP 2: Initialize model resources (Cholesky + per-thread RNGs)
+    // STEP 2: Initialize model resources (Cholesky + shared RNG)
     void *model_state = NULL;
     int status = openmp_init(params, &model_state);
     if (status != 0) {
