@@ -26,6 +26,7 @@ train_ratio: 0.8  # 80% training, 20% testing
 
 # Monte Carlo simulation parameters
 M: 100000   # Number of Monte Carlo trials/simulations
+random_seed: 67  # Random seed for reproducibility
 
 # Risk evaluation parameters
 x: 0.02   # Threshold for crash detection (e.g., 2% loss)

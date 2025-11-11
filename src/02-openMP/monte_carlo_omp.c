@@ -64,7 +64,7 @@ static int openmp_init(MonteCarloParams *params, void **model_state) {
 
     for (int i = 0; i < state->num_threads; i++) {
         state->rng_array[i] = gsl_rng_alloc(gsl_rng_mt19937);
-        gsl_rng_set(state->rng_array[i], RNG_SEED);  // Same seed for all threads
+        gsl_rng_set(state->rng_array[i], params->random_seed);  // Configurable seed
     }
 
     *model_state = state;

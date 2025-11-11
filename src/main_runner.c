@@ -81,9 +81,7 @@ int get_next_iteration_number() {
 
 int main() {
     printf("Monte Carlo Financial Risk Simulation\n\n");
-
-    const char *data_dir = "../data";
-
+    
     printf("Loading parameters from binary files...\n");
 
     // Load mu and Sigma and actual_freq from binary files
@@ -144,6 +142,7 @@ int main() {
     params->k = k;
     params->x = x;
     params->M = M;
+    params->random_seed = config.random_seed;
     params->mu = mu;
     params->Sigma = Sigma;
 
@@ -204,7 +203,7 @@ int main() {
                 .k = k,
                 .x = x,
                 .model_name = model.name,
-                .seed = RNG_SEED,  // Random seed defined in model_interface.h
+                .seed = config.random_seed,  // Random seed from config
                 .nodes = nodes,
                 .threads = threads,
                 .processes = processes,

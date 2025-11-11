@@ -18,6 +18,7 @@ typedef struct {
     int N;                             // Number of assets (from context, optional in YAML)
     int M;                             // Number of Monte Carlo trials
     int k;                             // Crash threshold (consecutive days)
+    unsigned long random_seed;         // Random seed for reproducibility
 
     // Data parameters
     double train_ratio;                // Training data ratio (e.g., 0.8)

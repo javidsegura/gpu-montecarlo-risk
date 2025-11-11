@@ -42,9 +42,9 @@ static int serial_init(MonteCarloParams *params, void **model_state) {
         return -1;
     }
 
-    // Initialize random number generator with fixed seed for reproducibility
+    // Initialize random number generator with configurable seed for reproducibility
     state->rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(state->rng, RNG_SEED);
+    gsl_rng_set(state->rng, params->random_seed);
 
     *model_state = state;
     return 0;

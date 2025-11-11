@@ -5,9 +5,6 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 
-// Random seed used by all models for reproducibility
-#define RNG_SEED 42
-
 // Holds the final results of the Monte Carlo simulation
 typedef struct {
     double P_hat;           // Estimated probability of extreme event
@@ -26,6 +23,7 @@ typedef struct {
     gsl_vector *mu;         // Mean returns of assets
     gsl_matrix *Sigma;      // Covariance matrix of asset returns
     int M;                  // Number of Monte Carlo trials to run
+    unsigned long random_seed;  // Random seed for reproducibility
 } MonteCarloParams;
 
 // Function pointer types - common interface that all models must implement

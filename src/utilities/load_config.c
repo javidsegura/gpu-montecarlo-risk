@@ -15,6 +15,7 @@ static void init_config_defaults(ConfigParams *config) {
     config->N = 0;
     config->M = 100000;
     config->k = 5;
+    config->random_seed = 42;
     config->train_ratio = 0.8;
     config->indices = NULL;
     config->num_indices = 0;
@@ -227,6 +228,8 @@ int load_config(const char *filename, ConfigParams *config) {
                         config->M = atoi(value);
                     } else if (strcmp(current_key, "k") == 0) {
                         config->k = atoi(value);
+                    } else if (strcmp(current_key, "random_seed") == 0) {
+                        config->random_seed = (unsigned long)atol(value);
                     } else if (strcmp(current_key, "train_ratio") == 0) {
                         config->train_ratio = atof(value);
                     } else if (strcmp(current_key, "comment") == 0) {
@@ -296,6 +299,7 @@ int load_config(const char *filename, ConfigParams *config) {
     printf("  M = %d (Monte Carlo trials)\n", config->M);
     printf("  x = %.4f (return threshold)\n", config->x);
     printf("  k = %d (crash threshold)\n", config->k);
+    printf("  random_seed = %lu\n", config->random_seed);
     printf("  train_ratio = %.4f\n", config->train_ratio);
     printf("  Number of indices: %d\n", config->num_indices);
     printf("  Number of models: %d\n", config->num_models);

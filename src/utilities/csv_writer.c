@@ -4,14 +4,25 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <time.h>
-#include <pthread.h>
 #include <errno.h>
 #include <assert.h>
 
-// Mutex for thread-safe CSV writing
-static pthread_mutex_t csv_write_mutex = PTHREAD_MUTEX_INITIALIZER;
+#ifdef _WIN32
+    #include <windows.h>
+    #include <io.h>
+    #define F_OK 0
+    #define W_OK 2
+    #define access _access
+    // Windows mutex
+    static CRITICAL_SECTION csv_write_mutex;
+    static int mutex_initialized = 0;
+#else
+    #include <unistd.h>
+    #include <pthread.h>
+    // POSIX mutex
+    static pthread_mutex_t csv_write_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 // Format timestamp to ISO 8601 format
 static void format_timestamp(long timestamp, char *buffer, size_t buffer_size) {
@@ -149,7 +160,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
     }
 
     // Create results directory if it doesn't exist (thread-safe, atomic)
-    int mkdir_status = mkdir("results", 0755); //permissions: rwxr-xr-x - to confirm
+#ifdef _WIN32
+    int mkdir_status = mkdir("results");
+#else
+    int mkdir_status = mkdir("results", 0755);
+#endif
     if (mkdir_status == -1) {
         if (errno != EEXIST) { // Error diff to Error: Exists
             // Only fail if error is NOT "directory already exists"
@@ -165,13 +180,20 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
 
     // CRITICAL SECTION: Lock for thread-safe CSV access
     // All file operations happen within this lock to ensure atomicity
+#ifdef _WIN32
+    if (!mutex_initialized) {
+        InitializeCriticalSection(&csv_write_mutex);
+        mutex_initialized = 1;
+    }
+    EnterCriticalSection(&csv_write_mutex);
+#else
     int lock_status = pthread_mutex_lock(&csv_write_mutex);
     if (lock_status != 0) {
         fprintf(stderr, "Error: Failed to lock CSV mutex: %s\n", strerror(lock_status));
         return -1;
     }
+#endif
 
-    int result = -1;  // Default to failure
     FILE *file = NULL;
 
     // Check if file exists BEFORE opening (for header-only-once guarantee)
@@ -181,7 +203,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
     file = fopen(filepath, "a");
     if (!file) {
         fprintf(stderr, "Error: Cannot open CSV file %s for writing: %s\n", filepath, strerror(errno));
+#ifdef _WIN32
+        LeaveCriticalSection(&csv_write_mutex);
+#else
         pthread_mutex_unlock(&csv_write_mutex);
+#endif
         return -1;
     }
 
@@ -190,7 +216,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         if (write_csv_header(file) != 0) {
             fprintf(stderr, "Error: Failed to write CSV header\n");
             fclose(file);
+#ifdef _WIN32
+            LeaveCriticalSection(&csv_write_mutex);
+#else
             pthread_mutex_unlock(&csv_write_mutex);
+#endif
             return -1;
         }
     }
@@ -204,7 +234,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
     if (!comment_escaped) {
         fprintf(stderr, "Error: Failed to escape comment field\n");
         fclose(file);
+#ifdef _WIN32
+        LeaveCriticalSection(&csv_write_mutex);
+#else
         pthread_mutex_unlock(&csv_write_mutex);
+#endif
         return -1;
     }
 
@@ -214,7 +248,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         fprintf(stderr, "Error: Failed to format indices\n");
         free(comment_escaped);
         fclose(file);
+#ifdef _WIN32
+        LeaveCriticalSection(&csv_write_mutex);
+#else
         pthread_mutex_unlock(&csv_write_mutex);
+#endif
         return -1;
     }
 
@@ -224,7 +262,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         free(comment_escaped);
         free(indices_str);
         fclose(file);
+#ifdef _WIN32
+        LeaveCriticalSection(&csv_write_mutex);
+#else
         pthread_mutex_unlock(&csv_write_mutex);
+#endif
         return -1;
     }
 
@@ -278,7 +320,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         free(comment_escaped);
         free(indices_str);
         free(indices_escaped);
+#ifdef _WIN32
+        LeaveCriticalSection(&csv_write_mutex);
+#else
         pthread_mutex_unlock(&csv_write_mutex);
+#endif
         return -1;
     }
 
@@ -290,7 +336,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         free(comment_escaped);
         free(indices_str);
         free(indices_escaped);
+#ifdef _WIN32
+        LeaveCriticalSection(&csv_write_mutex);
+#else
         pthread_mutex_unlock(&csv_write_mutex);
+#endif
         return -1;
     }
 
@@ -301,7 +351,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         free(comment_escaped);
         free(indices_str);
         free(indices_escaped);
+#ifdef _WIN32
+        LeaveCriticalSection(&csv_write_mutex);
+#else
         pthread_mutex_unlock(&csv_write_mutex);
+#endif
         return -1;
     }
 
@@ -314,7 +368,11 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
     indices_escaped = NULL;
 
     // Unlock mutex (success path)
+#ifdef _WIN32
+    LeaveCriticalSection(&csv_write_mutex);
+#else
     pthread_mutex_unlock(&csv_write_mutex);
+#endif
 
     return 0;
 }
