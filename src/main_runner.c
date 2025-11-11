@@ -4,9 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "model_interface.h"
 #include "utilities/load_binary.h"
 #include "utilities/load_config.h"
+#include "utilities/csv_writer.h"
+#include <math.h> //for NaN
 
 extern ModelFunctions get_serial_model(void);
 extern ModelFunctions get_openmp_model(void);
@@ -38,6 +41,44 @@ void make_clean(MonteCarloResult *result) {
     }
 }
 
+// Get user comment
+char* get_user_comment() {
+    char *comment = (char *)malloc(256);
+    if (!comment) {
+        return NULL;
+    }
+
+    printf("\nEnter a comment for this simulation (max 255 chars, or press Enter to skip): ");
+    fflush(stdout);
+
+    if (fgets(comment, 256, stdin) == NULL) {
+        free(comment);
+        return NULL;
+    }
+
+    // Remove trailing newline
+    size_t len = strlen(comment);
+    if (len > 0 && comment[len - 1] == '\n') {
+        comment[len - 1] = '\0';
+    }
+
+    return comment;
+}
+
+// Get system information (check how to handle it later)
+void get_system_info(int *nodes, int *threads, int *processes) {
+    // Placeholder implementation
+    *nodes = 0;
+    *threads = 0;
+    *processes = 0;
+}
+
+// Get the next iteration number (thread-safe counter)
+int get_next_iteration_number() {
+    static int iteration_counter = 0;
+    return iteration_counter++;
+}
+
 int main() {
     printf("Monte Carlo Financial Risk Simulation\n\n");
 
@@ -45,9 +86,10 @@ int main() {
 
     printf("Loading parameters from binary files...\n");
 
-    // Load mu and Sigma from binary files
+    // Load mu and Sigma and actual_freq from binary files
     gsl_vector *mu = load_mu_binary("data/mu.bin");
     gsl_matrix *Sigma = load_sigma_binary("data/sigma.bin");
+    double actual_freq = load_actual_freq_binary("data/params.bin");
 
     if (!mu || !Sigma) {
         fprintf(stderr, "Error: Failed to load binary files. Run Python preprocessing first.\n");
@@ -56,15 +98,21 @@ int main() {
         return 1;
     }
 
+    if (actual_freq < 0.0) {
+        fprintf(stderr, "Warning: Failed to load actual_freq from params.bin, using NaN\n");
+        actual_freq = NAN;
+    }
+
+
     int N = mu->size;  // Number of assets
 
     // Load configuration parameters from config.yaml
     ConfigParams config;
     if (load_config("config.yaml", &config) != 0) {
-        fprintf(stderr, "Error: Failed to load config.yaml. Using default values.\n");
-        config.M = 100000;
-        config.x = 0.02;
-        config.k = 5;
+        fprintf(stderr, "Error: Failed to load config.yaml. Exiting.\n");
+        gsl_vector_free(mu);
+        gsl_matrix_free(Sigma);
+        return 1;
     }
 
     int k = config.k;
@@ -76,9 +124,10 @@ int main() {
     printf("  Crash threshold (k): %d\n", k);
     printf("  Return threshold (x): %.2f%%\n", x * 100);
     printf("  Number of trials (M): %d\n", M);
+    printf("  Training ratio: %.2f%%\n", config.train_ratio * 100);
 
-    // Models to run - TODO: later read from config
-    const char *models_to_run[] = {"serial", "openmp"};
+    // Get user comment for this simulation run
+    char *user_comment = get_user_comment();
 
     // Initialize parameters
     MonteCarloParams *params = (MonteCarloParams *)malloc(sizeof(MonteCarloParams));
@@ -86,6 +135,8 @@ int main() {
         fprintf(stderr, "Error: Failed to allocate parameters\n");
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
+        if (user_comment) free(user_comment);
+        free_config(&config);
         return 1;
     }
 
@@ -96,13 +147,24 @@ int main() {
     params->mu = mu;
     params->Sigma = Sigma;
 
-    int num_models = sizeof(models_to_run) / sizeof(models_to_run[0]);
+    // Generate unique iteration ID (incremental counter)
+    int iteration_id = get_next_iteration_number();
 
-    // Run all models
-    for (int i = 0; i < num_models; i++) {
-        const char *model_type = models_to_run[i];
+    // Get system information
+    int nodes, threads, processes;
+    get_system_info(&nodes, &threads, &processes);
+
+    // Models to run - TODO: later read from config
+    // const char *models_to_run[] = {"serial", "openmp"};
+    // int num_models = sizeof(models_to_run) / sizeof(models_to_run[0]);
+
+    // Run all models from config
+    for (int i = 0; i < config.num_models; i++) {
+        const char *model_type = config.models[i];
         MonteCarloResult result = {0};
         ModelFunctions model;
+
+        printf("\n=== Running %s model ===\n", model_type);
 
         // Select model based on type
         if (strcmp(model_type, "serial") == 0) {
@@ -116,16 +178,54 @@ int main() {
             continue;
         }
 
+        // Record start time
+        clock_t start_time = clock();
+
         // Run model
         int status = model.run_model(params, &result);
 
+        // Calculate execution time in milliseconds
+        clock_t end_time = clock();
+        long execution_time_ms = (long)((end_time - start_time) * 1000 / CLOCKS_PER_SEC);
+
         if (status == 0) {
             print_results(model.name, &result, M);
+
+            // Write results to CSV
+            SimulationResultsData results_data = {
+                .iteration_id = iteration_id,
+                .timestamp = (long)time(NULL),
+                .execution_time_ms = execution_time_ms,
+                .comment = user_comment ? user_comment : "",
+                .start_date = config.start,
+                .end_date = config.end,
+                .train_ratio = config.train_ratio,
+                .M = M,
+                .k = k,
+                .x = x,
+                .model_name = model.name,
+                .seed = RNG_SEED,  // Random seed defined in model_interface.h
+                .nodes = nodes,
+                .threads = threads,
+                .processes = processes,
+                .indices = config.indices,
+                .num_indices = config.num_indices,
+                .actual_freq = actual_freq,
+                .P_hat = result.P_hat,
+                .count = result.count,
+                .std_error = result.std_error,
+                .ci_lower = result.ci_lower,
+                .ci_upper = result.ci_upper
+            };
+
+            if (write_results_to_csv("results/simulation_results.csv", &results_data) != 0) {
+                fprintf(stderr, "Warning: Failed to write results to CSV\n");
+            } else {
+                printf("Results written to results/simulation_results.csv\n");
+            }
         } else {
             fprintf(stderr, "Error: %s model failed\n", model.name);
         }
-
-        // TODO save results
 
         // Always cleanup S_values regardless of success/failure
         make_clean(&result);
@@ -134,5 +234,9 @@ int main() {
     }
 
     free_params(params);
+    free_config(&config);
+    if (user_comment) free(user_comment);
+
+    printf("Simulation complete.\n");
     return 0;
 }

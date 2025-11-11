@@ -12,5 +12,9 @@ gsl_vector* load_mu_binary(const char *filename);
 // File format: [rows (int32)] + [cols (int32)] + [Sigma values row-major (double)]
 gsl_matrix* load_sigma_binary(const char *filename);
 
+// Load actual frequency from binary file
+// File format: [actual frequency (double)]
+double load_actual_freq_binary(const char *filename);
+
 
 #endif // LOAD_BINARY_H

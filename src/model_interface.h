@@ -5,6 +5,9 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 
+// Random seed used by all models for reproducibility
+#define RNG_SEED 42
+
 // Holds the final results of the Monte Carlo simulation
 typedef struct {
     double P_hat;           // Estimated probability of extreme event

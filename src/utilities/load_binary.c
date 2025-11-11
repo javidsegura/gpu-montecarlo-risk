@@ -74,3 +74,23 @@ gsl_matrix* load_sigma_binary(const char *filename) {
     printf("Loaded Sigma (%dx%d) from %s\n", rows, cols, filename);
     return Sigma;
 }
+
+double load_actual_freq_binary(const char *filename) {
+    FILE *f = fopen(filename, "rb");
+    if (!f) {
+        fprintf(stderr, "Error: Cannot open %s\n", filename);
+        return -1.0;  // Return error
+    }
+
+    // Read actual frequency (single double value)
+    double actual_freq;
+    if (fread(&actual_freq, sizeof(double), 1, f) != 1) {
+        fprintf(stderr, "Error: Failed to read actual_freq from %s\n", filename);
+        fclose(f);
+        return -1.0;  // Return error
+    }
+
+    fclose(f);
+    printf("Loaded actual_freq (%.6f) from %s\n", actual_freq, filename);
+    return actual_freq;
+}
