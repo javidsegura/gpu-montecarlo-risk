@@ -1,0 +1,36 @@
+# Configuration file for GPU Monte Carlo Risk Analysis
+
+# Model configuration
+models:
+  - openmp
+  - serial
+
+# Data fetching parameters
+start: "2015-01-01"  # Start date for historical data (YYYY-MM-DD)
+end: "2025-12-31"    # End date for historical data (YYYY-MM-DD)
+
+# Stock indices to analyze
+indices:
+  STOXX50E: "^STOXX50E"
+  CAC40: "^FCHI"
+  DAX: "^GDAXI"
+  FTSE100: "^FTSE"
+  FTSEMIB: "FTSEMIB.MI"
+  IBEX35: "^IBEX"
+  SMI: "^SSMI"
+  AEX: "^AEX"
+  BEL20: "^BFX"
+
+# Data split ratio
+train_ratio: 0.8  # 80% training, 20% testing
+
+# Monte Carlo simulation parameters
+M: 100000   # Number of Monte Carlo trials/simulations
+random_seed: 67  # Random seed for reproducibility
+
+# Risk evaluation parameters
+x: 0.02   # Threshold for crash detection (e.g., 2% loss)
+k: 5      # Number of consecutive days below threshold to trigger crash
+
+# Additional notes
+comment: "Default configuration for Monte Carlo risk analysis with GPU acceleration"

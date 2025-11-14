@@ -1,14 +1,11 @@
 import numpy as np
-import matplotlib.pyplot as plt
-"""
 
+"""
 Informal goal: estimating financial doomsday
 Formal Goal: inferencing change of k assets (out of N assets -- assets being here stock market indices)
        dropping (their return) by more than a percentage x
 
-
 """
-
 
 
 def monte_carlo_crash_simulation(x, N, k, mu, Sigma, M):
