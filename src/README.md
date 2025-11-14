@@ -1,3 +1,22 @@
+# CLUSTER
+Because of memory issues clone the repo in the scratch folder.
+
+```bash
+git clone https://github.com/javidsegura/gpu-montecarlo-risk
+cd gpu-montecarlo-risk
+```
+
+RUN:
+1. Create a makefile to compile the code in the cluster.
+
+
+2. Run:
+```bash
+sbatch slurm_script.sh
+```
+
+# LOCAL
+
 ## Building the Project
 
 The project uses a Makefile located in the root directory. All build artifacts are placed in `build/` (object files) and `bin/` (executables).
