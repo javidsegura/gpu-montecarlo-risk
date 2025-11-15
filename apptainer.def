@@ -1,0 +1,76 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    Version v1
+    Description GPU Monte Carlo Risk – C/OpenMP/MPI + Python environment
+
+%environment
+    export LC_ALL=C
+    export LANG=C
+    export OMP_NUM_THREADS=1 
+    export PATH=/opt/app/bin:$PATH
+    export PYTHONPATH=/opt/app:$PYTHONPATH
+
+%files
+    . /opt/app/
+
+%post
+    echo "=== Updating base system ==="
+    apt-get update && apt-get install -y \
+        build-essential \
+        gcc \
+        g++ \
+        gfortran \
+        make \
+        git \
+        wget \
+        python3 \
+        python3-pip \
+        python3-venv \
+        libgsl-dev \
+        libhdf5-dev \
+        libhdf5-serial-dev \
+        libopenmpi-dev \
+        openmpi-bin \
+        libyaml-dev \
+        && apt-get clean
+
+    echo "=== Preparing project directory inside container ==="
+    mkdir -p /opt/app/bin
+    mkdir -p /opt/app/preprocessing
+
+    echo "=== Installing Python requirements ==="
+    pip3 install --no-cache-dir -r /opt/app/requirements.txt
+
+    echo "=== Building C/OpenMP/MPI binaries ==="
+    cd /opt/app/src
+
+    echo "=== Serial ==="
+    gcc -O3 -DSERIAL_BUILD -o ../bin/mc_serial \
+        main_runner.c \
+        02-C-serial/monte_carlo_serial.c \
+        utilities/*.c \
+        -lgsl -lhdf5_serial -lm -lyaml
+
+    echo "=== OpenMP ==="
+    gcc -O3 -fopenmp -DSERIAL_BUILD -DOPENMP_BUILD -o ../bin/mc_omp \
+        main_runner.c \
+        02-C-serial/monte_carlo_serial.c \
+        02-openMP/monte_carlo_omp.c \
+        utilities/*.c \
+        -lgsl -lhdf5_serial -lm -lyaml
+
+    # echo "=== MPI ==="
+    # Note: MPI build commented out until MPI implementation is added
+    # mpicc -O3 -DSERIAL_BUILD -DMPI_BUILD -o ../bin/mc_mpi \
+    #     main_runner.c \
+    #     02-C-serial/monte_carlo_serial.c \
+    #     utilities/*.c \
+    #     -lgsl -lhdf5_serial -lm -lyaml
+
+    echo "=== Done building project ==="
+
+%runscript
+    echo "Container is ready. Use: apptainer exec <img> <binary>"
+    exec /bin/bash "$@"
