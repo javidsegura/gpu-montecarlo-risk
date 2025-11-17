@@ -67,8 +67,8 @@ gsl_matrix* load_sigma_binary(const char *filename) {
         fclose(f);
         return NULL;
     }
-    // Check for potential overflow in rows * cols
-    if ((long long)rows * (long long)cols > 10000000000LL) {  // Max 10B elements
+    // Check for potential overflow in rows * cols (must fit in size_t safely)
+    if ((long long)rows * (long long)cols > 2000000000LL) {  // Max 2B elements (< INT_MAX)
         fprintf(stderr, "Error: Matrix too large (%lld elements) in %s\n", (long long)rows * (long long)cols, filename);
         fclose(f);
         return NULL;
@@ -83,7 +83,8 @@ gsl_matrix* load_sigma_binary(const char *filename) {
     }
 
     // Read data (row-major order from Python matches GSL default)
-    if (fread(Sigma->data, sizeof(double), rows * cols, f) != (size_t)(rows * cols)) {
+    size_t total_elements = (size_t)rows * (size_t)cols;
+    if (fread(Sigma->data, sizeof(double), total_elements, f) != total_elements) {
         fprintf(stderr, "Error: Failed to read data from %s\n", filename);
         gsl_matrix_free(Sigma);
         fclose(f);

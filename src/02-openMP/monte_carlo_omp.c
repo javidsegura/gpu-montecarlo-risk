@@ -137,34 +137,42 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
         // Allocate thread-local workspace ONCE per thread (major optimization)
         gsl_vector *Z = gsl_vector_alloc(params->N);
         gsl_vector *R = gsl_vector_alloc(params->N);
+
+        // Check for allocation failure
         if (!Z || !R) {
-            fprintf(stderr, "Error: Failed to allocate workspace vectors\n");
+            fprintf(stderr, "Error: Failed to allocate workspace vectors in thread %d\n", omp_get_thread_num());
             if (Z) gsl_vector_free(Z);
             if (R) gsl_vector_free(R);
+
+            // Set error flag and cancel the parallel region
+            #pragma omp atomic write
             allocation_error = 1;
+
+            #pragma omp cancel parallel
         }
+
+        // Check if cancellation was requested by another thread
+        #pragma omp cancellation point parallel
 
         // Parallel loop over trials with reduction for count
         // Use static scheduling for better cache locality and less overhead
-        if (!allocation_error) {
-            #pragma omp for reduction(+:count) schedule(static)
-            for (int j = 0; j < params->M; j++) {
-                // Run trial using thread-local workspace
-                int S = 0;
-                openmp_run_trial(model_state, params, Z, R, &S);
+        #pragma omp for reduction(+:count) schedule(static)
+        for (int j = 0; j < params->M; j++) {
+            // Run trial using thread-local workspace
+            int S = 0;
+            openmp_run_trial(model_state, params, Z, R, &S);
 
-                result->S_values[j] = S;
+            result->S_values[j] = S;
 
-                // Check if this trial resulted in an extreme event
-                if (S >= params->k) {
-                    count++;
-                }
+            // Check if this trial resulted in an extreme event
+            if (S >= params->k) {
+                count++;
             }
-
-            // Free thread-local workspace
-            gsl_vector_free(Z);
-            gsl_vector_free(R);
         }
+
+        // Free thread-local workspace (safe: only reached if allocation succeeded)
+        gsl_vector_free(Z);
+        gsl_vector_free(R);
     }
 
     // Check for allocation errors after parallel region

@@ -171,6 +171,8 @@ static int parse_indices_mapping(yaml_parser_t *parser, ConfigParams *config) {
                     temp_indices[count].ticker = strdup(value);
                     if (!temp_indices[count].ticker) {
                         fprintf(stderr, "Error: Failed to duplicate ticker\n");
+                        free(temp_indices[count].name); 
+                        current_index_name = NULL; 
                         yaml_event_delete(&event);
                         goto error;
                     }

@@ -3,8 +3,7 @@
 This is the shared-memory parallel implementation using OpenMP threading. The implementation parallelizes Monte Carlo trials across multiple CPU cores while maintaining statistical correctness.
 
 ## Overview
-
-The OpenMP version distributes Monte Carlo trials across multiple threads running concurrently on different CPU cores. Each thread maintains its own random number generator to avoid synchronization overhead, and thread-local workspace vectors are allocated once per thread rather than per trial to minimize allocation costs.
+The OpenMP version distributes Monte Carlo trials across multiple threads running concurrently on different CPU cores. A single shared random number generator protected by a critical section is used for reproducibility, and thread-local workspace vectors are allocated once per thread rather than per trial to minimize allocation costs.
 
 ## Data Structures
 
