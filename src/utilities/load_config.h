@@ -17,7 +17,7 @@ typedef struct {
     double x;                          // Return threshold (e.g., 0.02 for 2%)
     int N;                             // Number of assets (from context, optional in YAML)
     int M;                             // Number of Monte Carlo trials
-    int k;                             // Crash threshold (consecutive days)
+    int k;                             // Minimum number of indices that must crash simultaneously
     unsigned long random_seed;         // Random seed for reproducibility
 
     // Data parameters

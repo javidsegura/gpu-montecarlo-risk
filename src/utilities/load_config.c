@@ -70,7 +70,7 @@ static int parse_models_array(yaml_parser_t *parser, ConfigParams *config) {
     while (1) {
         if (!yaml_parser_parse(parser, &event)) {
             fprintf(stderr, "Error: YAML parser error in models array\n");
-            return -1;
+            goto error;
         }
 
         switch (event.type) {
@@ -91,13 +91,15 @@ static int parse_models_array(yaml_parser_t *parser, ConfigParams *config) {
                     char **new_models = (char **)realloc(temp_models, (count + 1) * sizeof(char *));
                     if (!new_models) {
                         fprintf(stderr, "Error: Failed to allocate memory for models\n");
-                        return -1;
+                        yaml_event_delete(&event);
+                        goto error;
                     }
                     temp_models = new_models;
                     temp_models[count] = strdup(value);
                     if (!temp_models[count]) {
                         fprintf(stderr, "Error: Failed to duplicate model name\n");
-                        return -1;
+                        yaml_event_delete(&event);
+                        goto error;
                     }
                     count++;
                 }
@@ -109,6 +111,16 @@ static int parse_models_array(yaml_parser_t *parser, ConfigParams *config) {
 
         yaml_event_delete(&event);
     }
+
+error:
+    // Clean up partially allocated resources
+    if (temp_models) {
+        for (int i = 0; i < count; i++) {
+            free(temp_models[i]);
+        }
+        free(temp_models);
+    }
+    return -1;
 }
 
 // Parse YAML indices mapping
@@ -121,7 +133,7 @@ static int parse_indices_mapping(yaml_parser_t *parser, ConfigParams *config) {
     while (1) {
         if (!yaml_parser_parse(parser, &event)) {
             fprintf(stderr, "Error: YAML parser error in indices mapping\n");
-            return -1;
+            goto error;
         }
 
         switch (event.type) {
@@ -143,21 +155,24 @@ static int parse_indices_mapping(yaml_parser_t *parser, ConfigParams *config) {
                     current_index_name = strdup(value);
                     if (!current_index_name) {
                         fprintf(stderr, "Error: Failed to duplicate index name\n");
-                        return -1;
+                        yaml_event_delete(&event);
+                        goto error;
                     }
                 } else {
                     // This is the ticker value
                     IndexConfig *new_indices = (IndexConfig *)realloc(temp_indices, (count + 1) * sizeof(IndexConfig));
                     if (!new_indices) {
                         fprintf(stderr, "Error: Failed to allocate memory for indices\n");
-                        return -1;
+                        yaml_event_delete(&event);
+                        goto error;
                     }
                     temp_indices = new_indices;
                     temp_indices[count].name = current_index_name;
                     temp_indices[count].ticker = strdup(value);
                     if (!temp_indices[count].ticker) {
                         fprintf(stderr, "Error: Failed to duplicate ticker\n");
-                        return -1;
+                        yaml_event_delete(&event);
+                        goto error;
                     }
                     count++;
                     current_index_name = NULL;
@@ -171,6 +186,20 @@ static int parse_indices_mapping(yaml_parser_t *parser, ConfigParams *config) {
 
         yaml_event_delete(&event);
     }
+
+error:
+    // Clean up partially allocated resources
+    if (current_index_name) {
+        free(current_index_name);
+    }
+    if (temp_indices) {
+        for (int i = 0; i < count; i++) {
+            if (temp_indices[i].name) free(temp_indices[i].name);
+            if (temp_indices[i].ticker) free(temp_indices[i].ticker);
+        }
+        free(temp_indices);
+    }
+    return -1;
 }
 
 int load_config(const char *filename, ConfigParams *config) {
@@ -263,15 +292,13 @@ int load_config(const char *filename, ConfigParams *config) {
                 if (current_key && strcmp(current_key, "models") == 0) {
                     free(current_key);
                     current_key = NULL;
-                    //yaml_event_delete(&event);
+                    yaml_event_delete(&event);
 
                     if (parse_models_array(&parser, config) != 0) {
                         yaml_parser_delete(&parser);
                         fclose(file);
                         return -1;
                     }
-                    //added
-                    yaml_event_delete(&event);
                     continue;
                 }
                 break;

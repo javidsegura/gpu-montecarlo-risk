@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 #SBATCH --job-name=montecarlo_risk
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -27,7 +29,7 @@ module list
 export OMP_NUM_THREADS=4
 echo "OpenMP threads: $OMP_NUM_THREADS"
 
-cd $SLURM_SUBMIT_DIR
+cd "$SLURM_SUBMIT_DIR" || { echo "Failed to change to submit directory"; exit 1; }
 echo "Working directory: $(pwd)"
 
 
@@ -42,9 +44,9 @@ pip install --no-cache-dir --upgrade pip
 pip install --no-cache-dir -r minimal_req.txt
 
 # Run preprocessing
-cd preprocessing
+cd preprocessing || { echo "Failed to enter preprocessing directory"; exit 1; }
 python3 main.py
-cd ..
+cd .. || { echo "Failed to return to root directory"; exit 1; }
 
 
 

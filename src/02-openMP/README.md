@@ -16,7 +16,7 @@ The OpenMP version distributes Monte Carlo trials across multiple threads runnin
 
 ## Core Functions
 
-**openmp_init()** - Preprocessing that computes the Cholesky decomposition once and initializes one random number generator per OpenMP thread. Each generator is seeded with 42, though this does not guarantee identical results to the serial version due to non-deterministic thread scheduling.
+**openmp_init()** - Preprocessing that computes the Cholesky decomposition once and initializes a single shared random number generator. The RNG is protected by a critical section, which can be a performance bottleneck.
 
 **openmp_run_trial()** - Executes a single Monte Carlo trial using thread-local workspace. Generates N independent standard normals from the thread's dedicated RNG, transforms them to correlated returns using R = mu + L*Z, and counts crashes.
 
@@ -27,7 +27,7 @@ The OpenMP version distributes Monte Carlo trials across multiple threads runnin
 
 ## Random Number Generation and Reproducibility
 
-The OpenMP implementation uses per-thread random number generators to avoid lock contention and synchronization overhead. Each thread's RNG is initialized with seed 42, but this does not guarantee bit-for-bit identical results compared to the serial version or across different runs with the same number of threads.
+The OpenMP implementation uses per-thread random number generators to avoid lock contention and synchronization overhead. Each thread's RNG is initialized with seed 67, but this does not guarantee bit-for-bit identical results compared to the serial version or across different runs with the same number of threads.
 
 The reason is that OpenMP threads execute trials in a non-deterministic order depending on OS scheduling decisions. While thread 0 might execute trials {0, 100, 200} and thread 1 might execute {1, 101, 201} in one run, the assignment could differ in subsequent runs even with the same seed and thread count. This means the random number sequence gets mapped to different trials across runs.
 

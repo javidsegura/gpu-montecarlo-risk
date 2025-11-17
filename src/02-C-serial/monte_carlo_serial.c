@@ -42,8 +42,14 @@ static int serial_init(MonteCarloParams *params, void **model_state) {
         return -1;
     }
 
-    // Initialize random number generator with configurable seed for reproducibility
-    state->rng = gsl_rng_alloc(gsl_rng_mt19937);
+    // Initialize random number generator
+        state->rng = gsl_rng_alloc(gsl_rng_mt19937);
+    if (!state->rng) {
+        fprintf(stderr, "Error: Failed to allocate RNG\n");
+        gsl_matrix_free(state->L);
+        free(state);
+        return -1;
+    }
     gsl_rng_set(state->rng, params->random_seed);
 
     *model_state = state;
@@ -51,11 +57,10 @@ static int serial_init(MonteCarloParams *params, void **model_state) {
 }
 
 // Run a single trial - generate correlated returns and count crashes
-static int serial_run_trial(void *model_state, MonteCarloParams *params, int trial_idx, int *S_out) {
+// Z and R are pre-allocated workspace vectors to avoid repeated allocation overhead
+static int serial_run_trial(void *model_state, MonteCarloParams *params,
+                            gsl_vector *Z, gsl_vector *R, int *S_out) {
     SerialModelState *state = (SerialModelState *)model_state;
-
-    gsl_vector *Z = gsl_vector_alloc(params->N);  // Standard normal random variables
-    gsl_vector *R = gsl_vector_alloc(params->N);  // Correlated returns
 
     // Generate N independent standard normal variates
     for (int i = 0; i < params->N; i++) {
@@ -73,9 +78,6 @@ static int serial_run_trial(void *model_state, MonteCarloParams *params, int tri
             S++;
         }
     }
-
-    gsl_vector_free(Z);
-    gsl_vector_free(R);
 
     *S_out = S;
     return 0;
@@ -112,18 +114,24 @@ static int serial_simulate(MonteCarloParams *params, MonteCarloResult *result) {
         return -1;
     }
 
-    // STEP 3: Run M independent trials
+    // STEP 3: Allocate workspace vectors once to avoid repeated allocation overhead
+    gsl_vector *Z = gsl_vector_alloc(params->N);  // Standard normal random variables
+    gsl_vector *R = gsl_vector_alloc(params->N);  // Correlated returns
+    if (!Z || !R) {
+        fprintf(stderr, "Error: Failed to allocate workspace vectors\n");
+        if (Z) gsl_vector_free(Z);
+        if (R) gsl_vector_free(R);
+        serial_cleanup_state(model_state);
+        free(result->S_values);
+        return -1;
+    }
+
+    // STEP 4: Run M independent trials
     for (int j = 0; j < params->M; j++) {
         int S = 0;
 
-        // Run one trial using the modular function
-        status = serial_run_trial(model_state, params, j, &S);
-        if (status != 0) {
-            fprintf(stderr, "Error: Trial %d failed\n", j);
-            serial_cleanup_state(model_state);
-            free(result->S_values);
-            return -1;
-        }
+        // Run one trial using pre-allocated workspace
+        serial_run_trial(model_state, params, Z, R, &S);
 
         result->S_values[j] = S;
 
@@ -133,18 +141,22 @@ static int serial_simulate(MonteCarloParams *params, MonteCarloResult *result) {
         }
     }
 
+    // Free workspace vectors
+    gsl_vector_free(Z);
+    gsl_vector_free(R);
+
     printf("Simulation complete\n");
 
-    // STEP 4: Calculate final probability estimate
+    // STEP 5: Calculate final probability estimate
     result->P_hat = (double)result->count / params->M;
 
-    // STEP 5: Calculate accuracy metrics (standard error and 95% CI)
+    // STEP 6: Calculate accuracy metrics (standard error and 95% CI)
     result->std_error = sqrt(result->P_hat * (1.0 - result->P_hat) / params->M);
     double margin = 1.96 * result->std_error;
     result->ci_lower = fmax(0.0, result->P_hat - margin);
     result->ci_upper = fmin(1.0, result->P_hat + margin);
 
-    // STEP 6: Cleanup internal state (result cleanup handled by main_runner)
+    // STEP 7: Cleanup internal state (result cleanup handled by main_runner)
     serial_cleanup_state(model_state);
 
     return 0;
