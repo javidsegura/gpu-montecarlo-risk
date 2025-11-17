@@ -16,7 +16,7 @@ The serial implementation computes Monte Carlo simulations for financial crash p
 
 ## Core Functions
 
-**serial_init()** - Preprocessing that computes the Cholesky decomposition once and initializes the random number generator with seed 42. The decomposition is reused across all trials for efficiency.
+**serial_init()** - Preprocessing that computes the Cholesky decomposition once and initializes the random number generator with the specified seed. The decomposition is reused across all trials for efficiency.
 
 **serial_run_trial()** - Executes a single Monte Carlo trial by generating N independent standard normals, transforming them to correlated returns using R = mu + L*Z, and counting how many returns fall below the crash threshold.
 
@@ -25,6 +25,3 @@ The serial implementation computes Monte Carlo simulations for financial crash p
 **serial_cleanup_state()** - Releases memory for the random number generator and Cholesky matrix after simulation completes.
 
 
-## Technical Details
-
-The implementation uses the MT19937 Mersenne Twister random number generator with a fixed seed of 42, guaranteeing reproducible results across runs. The Cholesky decomposition is computed once during initialization and reused for all M trials to avoid redundant computation. Standard error is calculated as sqrt(P_hat * (1 - P_hat) / M) and the 95% confidence interval uses the normal approximation: P_hat ± 1.96 * standard error.

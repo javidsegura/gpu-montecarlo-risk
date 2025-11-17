@@ -54,7 +54,7 @@ make rebuild
 Run serial + OpenMP with 8 threads:
 
 ```bash
-OMP_NUM_THREADS=8 ./bin/monte_carlo 
+OMP_NUM_THREADS=8 ./bin/monte_carlo
 ```
 
 ### Timing Execution
