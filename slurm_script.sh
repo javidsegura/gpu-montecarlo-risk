@@ -27,7 +27,9 @@ module load libyaml/0.2.5
 module list
 
 export OMP_NUM_THREADS=4
+export OMP_CANCELLATION=true
 echo "OpenMP threads: $OMP_NUM_THREADS"
+echo "OpenMP cancellation: $OMP_CANCELLATION"
 
 cd "$SLURM_SUBMIT_DIR" || { echo "Failed to change to submit directory"; exit 1; }
 echo "Working directory: $(pwd)"

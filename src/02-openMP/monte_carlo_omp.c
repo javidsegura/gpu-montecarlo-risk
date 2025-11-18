@@ -134,37 +134,35 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
 
     #pragma omp parallel
     {
-        // Allocate thread-local workspace ONCE per thread (major optimization)
         gsl_vector *Z = gsl_vector_alloc(params->N);
         gsl_vector *R = gsl_vector_alloc(params->N);
+
         if (!Z || !R) {
-            fprintf(stderr, "Error: Failed to allocate workspace vectors\n");
-            if (Z) gsl_vector_free(Z);
-            if (R) gsl_vector_free(R);
+            #pragma omp atomic write
             allocation_error = 1;
         }
 
-        // Parallel loop over trials with reduction for count
-        // Use static scheduling for better cache locality and less overhead
+        #pragma omp barrier
+
         if (!allocation_error) {
             #pragma omp for reduction(+:count) schedule(static)
             for (int j = 0; j < params->M; j++) {
-                // Run trial using thread-local workspace
+                // Run trial using thread local workspace
                 int S = 0;
                 openmp_run_trial(model_state, params, Z, R, &S);
 
                 result->S_values[j] = S;
 
-                // Check if this trial resulted in an extreme event
                 if (S >= params->k) {
                     count++;
                 }
             }
-
-            // Free thread-local workspace
-            gsl_vector_free(Z);
-            gsl_vector_free(R);
         }
+
+
+        if (R) gsl_vector_free(R);
+        if (Z) gsl_vector_free(Z);
+    
     }
 
     // Check for allocation errors after parallel region

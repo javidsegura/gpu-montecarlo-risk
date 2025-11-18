@@ -43,13 +43,14 @@ static int serial_init(MonteCarloParams *params, void **model_state) {
     }
 
     // Initialize random number generator
-        state->rng = gsl_rng_alloc(gsl_rng_mt19937);
+    state->rng = gsl_rng_alloc(gsl_rng_mt19937);
     if (!state->rng) {
         fprintf(stderr, "Error: Failed to allocate RNG\n");
         gsl_matrix_free(state->L);
         free(state);
         return -1;
-    }
+    }   
+    
     gsl_rng_set(state->rng, params->random_seed);
 
     *model_state = state;
