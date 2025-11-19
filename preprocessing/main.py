@@ -9,7 +9,7 @@ def run_pipeline():
     """
     Execute the complete preprocessing and evaluation pipeline.
     """
-    config_file = Path(__file__).parent.parent / "config.yaml"
+    config_file = Path(__file__).parent.parent / "configs" / "config.yaml"
     with open(config_file, 'r') as f:
         config = yaml.safe_load(f)
 
@@ -23,7 +23,7 @@ def run_pipeline():
     # Validate that indices is a dictionary
     if not isinstance(indices, dict):
         raise TypeError(
-            f"'indices' in config.yaml must be a dictionary mapping index names to ticker symbols, "
+            f"'indices' in configs/config.yaml must be a dictionary mapping index names to ticker symbols, "
             f"got {type(indices).__name__} instead"
         )
 

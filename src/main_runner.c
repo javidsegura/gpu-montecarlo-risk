@@ -13,7 +13,7 @@
 
 extern ModelFunctions get_serial_model(void);
 extern ModelFunctions get_openmp_model(void);
-// extern ModelFunctions get_cuda_model(void);
+extern ModelFunctions get_cuda_model(void);
 
 // Print final results
 void print_results(const char *model_name, MonteCarloResult *result, int M) {
@@ -65,12 +65,27 @@ char* get_user_comment() {
     return comment;
 }
 
-// Get system information (check how to handle it later)
+// Get system information from SLURM environment variables
 void get_system_info(int *nodes, int *threads, int *processes) {
-    // Placeholder implementation
-    *nodes = 0;
-    *threads = 0;
-    *processes = 0;
+    // Read from SLURM environment variables
+    char *env_val;
+    
+    // Number of nodes allocated
+    env_val = getenv("SLURM_NNODES");
+    *nodes = env_val ? atoi(env_val) : 1;
+    
+    // Number of threads (prefer OMP_NUM_THREADS, fallback to SLURM_CPUS_PER_TASK)
+    env_val = getenv("OMP_NUM_THREADS");
+    if (env_val) {
+        *threads = atoi(env_val);
+    } else {
+        env_val = getenv("SLURM_CPUS_PER_TASK");
+        *threads = env_val ? atoi(env_val) : 1;
+    }
+    
+    // Number of MPI processes/tasks
+    env_val = getenv("SLURM_NTASKS");
+    *processes = env_val ? atoi(env_val) : 1;
 }
 
 // Get the next iteration number (thread-safe counter)
@@ -104,10 +119,10 @@ int main() {
 
     int N = mu->size;  // Number of assets
 
-    // Load configuration parameters from config.yaml
+    // Load configuration parameters from configs/config.yaml
     ConfigParams config;
-    if (load_config("config.yaml", &config) != 0) {
-        fprintf(stderr, "Error: Failed to load config.yaml. Exiting.\n");
+    if (load_config("configs/config.yaml", &config) != 0) {
+        fprintf(stderr, "Error: Failed to load configs/config.yaml. Exiting.\n");
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
         return 1;
@@ -171,6 +186,9 @@ int main() {
         }
         else if (strcmp(model_type, "openmp") == 0) {
             model = get_openmp_model();
+        }
+        else if (strcmp(model_type, "cuda") == 0) {
+            model = get_cuda_model();
         }
         else {
             fprintf(stderr, "Error: Unknown model type '%s'\n", model_type);
