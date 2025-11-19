@@ -9,7 +9,7 @@ def run_pipeline():
     """
     Execute the complete preprocessing and evaluation pipeline.
     """
-    config_file = Path(__file__).parent.parent / "configs" / "config.yaml"
+    config_file = Path(__file__).parent.parent / "config.yaml"
     with open(config_file, 'r') as f:
         config = yaml.safe_load(f)
 

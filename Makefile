@@ -22,7 +22,7 @@ $(shell mkdir -p $(BIN_DIR) $(OBJ_DIR))
 # Source files
 UTIL_SRC = $(UTIL_DIR)/load_binary.c $(UTIL_DIR)/load_config.c $(UTIL_DIR)/csv_writer.c
 SERIAL_SRC = $(SRC_DIR)/02-C-serial/monte_carlo_serial.c
-OPENMP_SRC = $(SRC_DIR)/02-openMP/monte_carlo_omp.c
+OPENMP_SRC = $(SRC_DIR)/03-openMP/monte_carlo_omp.c
 CUDA_SRC = $(SRC_DIR)/05-GPU/monte_carlo_cuda.cu
 MAIN_SRC = $(SRC_DIR)/main_runner.c
 

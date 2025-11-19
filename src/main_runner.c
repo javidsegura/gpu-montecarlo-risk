@@ -119,10 +119,10 @@ int main() {
 
     int N = mu->size;  // Number of assets
 
-    // Load configuration parameters from configs/config.yaml
+    // Load configuration parameters from config.yaml
     ConfigParams config;
-    if (load_config("configs/config.yaml", &config) != 0) {
-        fprintf(stderr, "Error: Failed to load configs/config.yaml. Exiting.\n");
+    if (load_config("config.yaml", &config) != 0) {
+        fprintf(stderr, "Error: Failed to load config.yaml. Exiting.\n");
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
         return 1;

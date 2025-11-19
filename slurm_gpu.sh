@@ -1,27 +1,32 @@
 #!/bin/bash
-set -e
-
-#SBATCH --job-name=montecarlo_cpu
+#SBATCH --job-name=montecarlo_cuda
+#SBATCH --partition=gpu-node
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
+#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=02:00:00
-#SBATCH --mem=8GB
-#SBATCH --output=slurm-cpu-%j.out
-#SBATCH --error=slurm-cpu-%j.err
+#SBATCH --time=01:00:00
+#SBATCH --mem=16GB
+#SBATCH --output=slurm-cuda-%j.out
+#SBATCH --error=slurm-cuda-%j.err
+
+set -e
 
 echo "=========================================="
-echo "Monte Carlo Risk Analysis (CPU)"
+echo "Monte Carlo CUDA GPU Simulation (1 Node)"
 echo "=========================================="
 echo "Job ID: $SLURM_JOB_ID"
-echo "Node: $SLURM_NODELIST"
+echo "Nodes: $SLURM_NODELIST"
+echo "Number of nodes: $SLURM_NNODES"
 echo "Date: $(date)"
+echo "Partition: $SLURM_JOB_PARTITION"
 echo "=========================================="
 
 # Load required modules
 module purge
 module load StdEnv/2023
 module load gcc/12.3
+module load cuda/12.2
 module load python/3.11.5
 module load gsl/2.7
 module load libyaml/0.2.5
@@ -32,16 +37,14 @@ module list
 echo "======================"
 echo ""
 
-export OMP_NUM_THREADS=4
-export OMP_CANCELLATION=true
-echo "OpenMP threads: $OMP_NUM_THREADS"
-echo "OpenMP cancellation: $OMP_CANCELLATION"
+# Display GPU information on all nodes
+echo "=== GPU Information (All Nodes) ==="
+srun --ntasks=$SLURM_NNODES --ntasks-per-node=1 bash -c 'echo "Node: $(hostname)"; nvidia-smi --query-gpu=name,memory.total,compute_cap --format=csv,noheader'
+echo "===================================="
 echo ""
 
-# Get project root (parent of slurm_scripts directory)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_ROOT" || { echo "Failed to change to project root"; exit 1; }
+# Change to the submission directory
+cd "$SLURM_SUBMIT_DIR" || { echo "Failed to change to submit directory"; exit 1; }
 echo "Working directory: $(pwd)"
 echo ""
 
@@ -70,7 +73,7 @@ python3 main.py
 cd .. || { echo "Failed to return to root directory"; exit 1; }
 echo ""
 
-# STEP 3: Compile C programs
+# STEP 3: Compile C/CUDA programs
 echo "=========================================="
 echo "STEP 3: Compiling programs"
 echo "=========================================="
@@ -85,27 +88,18 @@ fi
 echo "Compilation successful!"
 echo ""
 
-# STEP 4: Run Python Serial (optional)
+# STEP 4: Run CUDA simulation
 echo "=========================================="
-echo "STEP 4: Python Serial (Optional)"
+echo "STEP 4: Running CUDA simulation"
 echo "=========================================="
-if [ -f "src/01-python-serial/python_serial.py" ]; then
-    python3 src/01-python-serial/python_serial.py
-else
-    echo "Skipping Python serial (file not found)"
-fi
-echo ""
-
-# STEP 5: Run C simulations
-echo "=========================================="
-echo "STEP 5: Running C/OpenMP simulations"
-echo "=========================================="
+echo "Note: CUDA implementation runs on single GPU per execution"
+echo "For multi-GPU, run multiple instances or use MPI-GPU version"
 ./bin/monte_carlo
 echo ""
 
-# STEP 6: Display results
+# STEP 5: Display results
 echo "=========================================="
-echo "STEP 6: Results Summary"
+echo "STEP 5: Results Summary"
 echo "=========================================="
 if [ -f "results/simulation_results.csv" ]; then
     echo "Last 5 simulation results:"
@@ -116,7 +110,7 @@ fi
 echo ""
 
 echo "=========================================="
-echo "CPU Simulation Complete!"
+echo "CUDA Simulation Complete!"
 echo "Job finished at: $(date)"
 echo "=========================================="
 
