@@ -2,8 +2,9 @@
 
 # Model configuration
 models:
-  - openmp
-  - serial
+  #- openmp
+  #- serial
+  - cuda
 
 # Data fetching parameters
 start: "2015-01-01"  # Start date for historical data (YYYY-MM-DD)
