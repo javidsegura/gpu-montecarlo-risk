@@ -7,22 +7,7 @@
 #include <time.h>
 #include <errno.h>
 #include <assert.h>
-
-#ifdef _WIN32
-    #include <windows.h>
-    #include <io.h>
-    #define F_OK 0
-    #define W_OK 2
-    #define access _access
-    // Windows mutex
-    static CRITICAL_SECTION csv_write_mutex;
-    static int mutex_initialized = 0;
-#else
-    #include <unistd.h>
-    #include <pthread.h>
-    // POSIX mutex
-    static pthread_mutex_t csv_write_mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
+#include <unistd.h>
 
 // Format timestamp to ISO 8601 format
 static void format_timestamp(long timestamp, char *buffer, size_t buffer_size) {
@@ -38,9 +23,9 @@ static void format_timestamp(long timestamp, char *buffer, size_t buffer_size) {
 
 // Write CSV header
 static int write_csv_header(FILE *file) {
-    fprintf(file, "iterationnumber,timestamp,execution_time_ms,comment,");
+    fprintf(file, "iterationnumber,timestamp,execution_time_ms, MC_throughput_secs, comment,");
     fprintf(file, "start_date,end_date,train_ratio,M,k,x,");
-    fprintf(file, "model_name,seed,nodes,threads,processes,");
+    fprintf(file, "model_name,seed,nodes,threads,processes, ");
     fprintf(file, "indices,actual_freq,");
     fprintf(file, "P_hat,count,std_error,ci_lower,ci_upper\n");
 
@@ -140,10 +125,10 @@ static char* format_indices(const IndexConfig *indices, int num_indices) {
             *p++ = ';'; // Separator between indices
         }
         int written = sprintf(p, "%s:%s", indices[i].name, indices[i].ticker); //name:ticker
-    if (written < 0) {
-        fprintf(stderr, "Error: sprintf failed at index %d\n", i);
-        free(result);
-        return NULL;
+        if (written < 0) {
+            fprintf(stderr, "Error: sprintf failed at index %d\n", i);
+            free(result);
+            return NULL;
     }
         p += written; //"AAPL:Apple;GOOGL:Google"
     }
@@ -178,21 +163,6 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         }
     }
 
-    // CRITICAL SECTION: Lock for thread-safe CSV access
-    // All file operations happen within this lock to ensure atomicity
-#ifdef _WIN32
-    if (!mutex_initialized) {
-        InitializeCriticalSection(&csv_write_mutex);
-        mutex_initialized = 1;
-    }
-    EnterCriticalSection(&csv_write_mutex);
-#else
-    int lock_status = pthread_mutex_lock(&csv_write_mutex);
-    if (lock_status != 0) {
-        fprintf(stderr, "Error: Failed to lock CSV mutex: %s\n", strerror(lock_status));
-        return -1;
-    }
-#endif
 
     FILE *file = NULL;
 
@@ -203,11 +173,6 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
     file = fopen(filepath, "a");
     if (!file) {
         fprintf(stderr, "Error: Cannot open CSV file %s for writing: %s\n", filepath, strerror(errno));
-#ifdef _WIN32
-        LeaveCriticalSection(&csv_write_mutex);
-#else
-        pthread_mutex_unlock(&csv_write_mutex);
-#endif
         return -1;
     }
 
@@ -216,11 +181,6 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         if (write_csv_header(file) != 0) {
             fprintf(stderr, "Error: Failed to write CSV header\n");
             fclose(file);
-#ifdef _WIN32
-            LeaveCriticalSection(&csv_write_mutex);
-#else
-            pthread_mutex_unlock(&csv_write_mutex);
-#endif
             return -1;
         }
     }
@@ -234,11 +194,6 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
     if (!comment_escaped) {
         fprintf(stderr, "Error: Failed to escape comment field\n");
         fclose(file);
-#ifdef _WIN32
-        LeaveCriticalSection(&csv_write_mutex);
-#else
-        pthread_mutex_unlock(&csv_write_mutex);
-#endif
         return -1;
     }
 
@@ -248,11 +203,6 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         fprintf(stderr, "Error: Failed to format indices\n");
         free(comment_escaped);
         fclose(file);
-#ifdef _WIN32
-        LeaveCriticalSection(&csv_write_mutex);
-#else
-        pthread_mutex_unlock(&csv_write_mutex);
-#endif
         return -1;
     }
 
@@ -262,33 +212,22 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         free(comment_escaped);
         free(indices_str);
         fclose(file);
-#ifdef _WIN32
-        LeaveCriticalSection(&csv_write_mutex);
-#else
-        pthread_mutex_unlock(&csv_write_mutex);
-#endif
         return -1;
     }
-
-    // Format system info: 0 means "not set", >0 means actual value 
-    // Check later how to handle them
-    char nodes_str[16], threads_str[16], processes_str[16];
-    snprintf(nodes_str, sizeof(nodes_str), "%d", data->nodes > 0 ? data->nodes : 0);
-    snprintf(threads_str, sizeof(threads_str), "%d", data->threads > 0 ? data->threads : 0);
-    snprintf(processes_str, sizeof(processes_str), "%d", data->processes > 0 ? data->processes : 0);
 
     // Write data row to CSV
     // if pointers null -> empty string
     int fprintf_status = fprintf(file,
-            "%d,%s,%ld,%s,"
+            "%d,%s,%ld,%d,%s,"
             "%s,%s,%.4f,%d,%d,%.4f,"
-            "%s,%lu,%s,%s,%s,"
+            "%s,%lu,%d,%d,%d, "
             "%s,%.6f,"
             "%.6f,%d,%.6f,%.6f,%.6f\n",
             // Metadata
             data->iteration_id,
             timestamp_str,
             data->execution_time_ms,
+            data->MC_throughput_secs,
             comment_escaped ? comment_escaped : "",
             // Configuration
             data->start_date ? data->start_date : "",
@@ -300,9 +239,9 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
             // Model info
             data->model_name ? data->model_name : "",
             data->seed,
-            nodes_str,
-            threads_str,
-            processes_str,
+            data-> nodes,
+            data->threads,
+            data->processes,
             // Indices
             indices_escaped ? indices_escaped : "",
             data->actual_freq,
@@ -320,11 +259,6 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         free(comment_escaped);
         free(indices_str);
         free(indices_escaped);
-#ifdef _WIN32
-        LeaveCriticalSection(&csv_write_mutex);
-#else
-        pthread_mutex_unlock(&csv_write_mutex);
-#endif
         return -1;
     }
 
@@ -336,11 +270,6 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         free(comment_escaped);
         free(indices_str);
         free(indices_escaped);
-#ifdef _WIN32
-        LeaveCriticalSection(&csv_write_mutex);
-#else
-        pthread_mutex_unlock(&csv_write_mutex);
-#endif
         return -1;
     }
 
@@ -351,11 +280,6 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
         free(comment_escaped);
         free(indices_str);
         free(indices_escaped);
-#ifdef _WIN32
-        LeaveCriticalSection(&csv_write_mutex);
-#else
-        pthread_mutex_unlock(&csv_write_mutex);
-#endif
         return -1;
     }
 
@@ -367,12 +291,6 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
     free(indices_escaped);
     indices_escaped = NULL;
 
-    // Unlock mutex (success path)
-#ifdef _WIN32
-    LeaveCriticalSection(&csv_write_mutex);
-#else
-    pthread_mutex_unlock(&csv_write_mutex);
-#endif
 
     return 0;
 }

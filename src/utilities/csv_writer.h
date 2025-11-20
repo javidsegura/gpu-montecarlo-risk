@@ -9,6 +9,7 @@ typedef struct {
     int iteration_id;                  // Unique identifier for this simulation run
     long timestamp;                    // Unix timestamp when simulation was run
     long execution_time_ms;            // Execution time in milliseconds
+    int MC_throughput_secs;            // Monte Carlo throughput in seconds
     const char *comment;               // User comment
 
     // Configuration parameters
@@ -25,6 +26,7 @@ typedef struct {
     int nodes;                         // Number of nodes 
     int threads;                       // Number of threads 
     int processes;                     // Number of processes 
+
 
     // Index information
     IndexConfig *indices;              // Array of indices used

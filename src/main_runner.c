@@ -41,37 +41,41 @@ void make_clean(MonteCarloResult *result) {
     }
 }
 
-// Get user comment
-char* get_user_comment() {
-    char *comment = (char *)malloc(256);
-    if (!comment) {
-        return NULL;
-    }
 
-    printf("\nEnter a comment for this simulation (max 255 chars, or press Enter to skip): ");
-    fflush(stdout);
-
-    if (fgets(comment, 256, stdin) == NULL) {
-        free(comment);
-        return NULL;
-    }
-
-    // Remove trailing newline
-    size_t len = strlen(comment);
-    if (len > 0 && comment[len - 1] == '\n') {
-        comment[len - 1] = '\0';
-    }
-
-    return comment;
+// Get Slurm system information from environment variables - requested resources
+void get_slurm_info(int *slurm_nodes, int *slurm_threads, int *slurm_processes) {
+    char *env_nodes = getenv("SLURM_JOB_NUM_NODES");
+    char *env_threads = getenv("SLURM_CPUS_PER_TASK");
+    char *env_processes = getenv("SLURM_NTASKS");
+    *slurm_nodes = env_nodes ? atoi(env_nodes) : 0;
+    *slurm_threads = env_threads ? atoi(env_threads) : 0;
+    *slurm_processes = env_processes ? atoi(env_processes) : 0;
 }
 
-// Get system information (check how to handle it later)
+
+// Get system information from SLURM environment variables
 void get_system_info(int *nodes, int *threads, int *processes) {
-    // Placeholder implementation
-    *nodes = 0;
-    *threads = 0;
-    *processes = 0;
+    // Read from SLURM environment variables
+    char *env_val;
+    
+    // Number of nodes allocated
+    env_val = getenv("SLURM_NNODES");
+    *nodes = env_val ? atoi(env_val) : 1;
+    
+    // Number of threads (prefer OMP_NUM_THREADS, fallback to SLURM_CPUS_PER_TASK)
+    env_val = getenv("OMP_NUM_THREADS");
+    if (env_val) {
+        *threads = atoi(env_val);
+    } else {
+        env_val = getenv("SLURM_CPUS_PER_TASK");
+        *threads = env_val ? atoi(env_val) : 1;
+    }
+    
+    // Number of MPI processes/tasks
+    env_val = getenv("SLURM_NTASKS");
+    *processes = env_val ? atoi(env_val) : 1;
 }
+
 
 // Get the next iteration number (thread-safe counter)
 int get_next_iteration_number() {
@@ -124,8 +128,8 @@ int main() {
     printf("  Number of trials (M): %d\n", M);
     printf("  Training ratio: %.2f%%\n", config.train_ratio * 100);
 
-    // Get user comment for this simulation run
-    char *user_comment = get_user_comment();
+    // Get user comment from config 
+    char *user_comment = config.comment;
 
     // Initialize parameters
     MonteCarloParams *params = (MonteCarloParams *)malloc(sizeof(MonteCarloParams));
@@ -133,7 +137,6 @@ int main() {
         fprintf(stderr, "Error: Failed to allocate parameters\n");
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
-        if (user_comment) free(user_comment);
         free_config(&config);
         return 1;
     }
@@ -153,6 +156,8 @@ int main() {
     int nodes, threads, processes;
     get_system_info(&nodes, &threads, &processes);
 
+    int slurm_nodes, slurm_threads, slurm_processes;
+    get_slurm_info(&slurm_nodes, &slurm_threads, &slurm_processes);
     // Models to run - TODO: later read from config
     // const char *models_to_run[] = {"serial", "openmp"};
     // int num_models = sizeof(models_to_run) / sizeof(models_to_run[0]);
@@ -186,6 +191,9 @@ int main() {
         // Calculate execution time in milliseconds
         clock_t end_time = clock();
         long execution_time_ms = (long)((end_time - start_time) * 1000 / CLOCKS_PER_SEC);
+        
+        // Get throughput in seconds
+        int throughput = (int)round((double)M * 1000.0 / (double)execution_time_ms);
 
         if (status == 0) {
             print_results(model.name, &result, M);
@@ -195,6 +203,7 @@ int main() {
                 .iteration_id = iteration_id,
                 .timestamp = (long)time(NULL),
                 .execution_time_ms = execution_time_ms,
+                .MC_throughput_secs = throughput,
                 .comment = user_comment ? user_comment : "",
                 .start_date = config.start,
                 .end_date = config.end,
@@ -213,7 +222,7 @@ int main() {
                 .P_hat = result.P_hat,
                 .count = result.count,
                 .std_error = result.std_error,
-                .ci_lower = result.ci_lower,
+                .ci_lower = result.ci_lower, 
                 .ci_upper = result.ci_upper
             };
 
@@ -234,7 +243,6 @@ int main() {
 
     free_params(params);
     free_config(&config);
-    if (user_comment) free(user_comment);
 
     printf("Simulation complete.\n");
     return 0;
