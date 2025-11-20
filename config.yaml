@@ -34,4 +34,4 @@ x: 0.02   # Threshold for crash detection (e.g., 2% loss)
 k: 5      # Minimum number of indices that must crash simultaneously to trigger an extreme event
 
 # Additional notes
-comment: "Default configuration for Monte Carlo risk analysis with GPU acceleration"
+comment: "GPU Run 2 - Verifying CSV Append"

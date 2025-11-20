@@ -13,7 +13,7 @@
 
 extern ModelFunctions get_serial_model(void);
 extern ModelFunctions get_openmp_model(void);
-// extern ModelFunctions get_cuda_model(void);
+extern ModelFunctions get_cuda_model(void);
 
 // Print final results
 void print_results(const char *model_name, MonteCarloResult *result, int M) {
@@ -127,13 +127,25 @@ int main() {
     // Get user comment for this simulation run
     char *user_comment = get_user_comment();
 
+    // Use config comment as fallback if user comment is empty
+    char *final_comment = NULL;
+    if (user_comment && strlen(user_comment) > 0) {
+        final_comment = strdup(user_comment);
+    } else if (config.comment && strlen(config.comment) > 0) {
+        final_comment = strdup(config.comment);
+    } else {
+        final_comment = strdup("");
+    }
+    
+    if (user_comment) free(user_comment);
+
     // Initialize parameters
     MonteCarloParams *params = (MonteCarloParams *)malloc(sizeof(MonteCarloParams));
     if (!params) {
         fprintf(stderr, "Error: Failed to allocate parameters\n");
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
-        if (user_comment) free(user_comment);
+        if (final_comment) free(final_comment);
         free_config(&config);
         return 1;
     }
@@ -172,6 +184,9 @@ int main() {
         else if (strcmp(model_type, "openmp") == 0) {
             model = get_openmp_model();
         }
+        else if (strcmp(model_type, "cuda") == 0 || strcmp(model_type, "gpu") == 0) {
+            model = get_cuda_model();
+        }
         else {
             fprintf(stderr, "Error: Unknown model type '%s'\n", model_type);
             continue;
@@ -195,7 +210,7 @@ int main() {
                 .iteration_id = iteration_id,
                 .timestamp = (long)time(NULL),
                 .execution_time_ms = execution_time_ms,
-                .comment = user_comment ? user_comment : "",
+                .comment = final_comment,
                 .start_date = config.start,
                 .end_date = config.end,
                 .train_ratio = config.train_ratio,
@@ -234,7 +249,7 @@ int main() {
 
     free_params(params);
     free_config(&config);
-    if (user_comment) free(user_comment);
+    if (final_comment) free(final_comment);
 
     printf("Simulation complete.\n");
     return 0;

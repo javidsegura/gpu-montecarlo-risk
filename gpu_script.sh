@@ -114,11 +114,11 @@ gcc -Wall -Wextra -O3 -std=gnu11 -Isrc -c src/utilities/csv_writer.c -o obj/csv_
 # Compile Models
 echo 'Compiling models...'
 gcc -Wall -Wextra -O3 -std=gnu11 -Isrc -c src/02-C-serial/monte_carlo_serial.c -o obj/monte_carlo_serial.o
-gcc -Wall -Wextra -O3 -std=gnu11 -fopenmp -Isrc -c src/03-openMP/monte_carlo_omp.c -o obj/monte_carlo_omp.o
+gcc -Wall -Wextra -O3 -std=gnu11 -fopenmp -Isrc -c src/02-openMP/monte_carlo_omp.c -o obj/monte_carlo_omp.o
 
 echo 'Compiling CUDA model...'
 # Note: Adding -I/host-cuda/include to find curand_kernel.h
-nvcc -O3 -arch=sm_60 -Xcompiler -fPIC -Isrc -I/host-cuda/include -c src/05-GPU/monte_carlo_cuda.cu -o obj/monte_carlo_cuda.o
+nvcc -O3 -arch=sm_60 -Xcompiler -fPIC -Isrc -I/host-cuda/include -c src/03-GPU/monte_carlos_cuda.cu -o obj/monte_carlo_cuda.o
 
 # Compile Main
 echo 'Compiling main runner...'
