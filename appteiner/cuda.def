@@ -1,0 +1,28 @@
+Bootstrap: docker
+From: tensorflow/tensorflow:2.16.1-gpu
+
+%post
+    # Update and install build essentials
+    apt-get update && apt-get install -y \
+        build-essential \
+        gcc \
+        g++ \
+        libgsl-dev \
+        libyaml-dev \
+        cuda-toolkit-12-2 \
+        wget \
+        git \
+        && rm -rf /var/lib/apt/lists/*
+
+%environment
+    export PATH=/usr/local/cuda/bin:$PATH
+    export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+    export CUDA_HOME=/usr/local/cuda
+
+%runscript
+    exec "$@"
+
+%labels
+    Author Javier DS
+    Version 1.0
+    Description TensorFlow 2.16.1 GPU with GSL and LibYAML for Monte Carlo simulations

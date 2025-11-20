@@ -1,6 +1,7 @@
 // Main entry point for running Monte Carlo simulations with different implementations
 // Supports: Serial, OpenMP (future), CUDA (future)
 
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -192,15 +193,17 @@ int main() {
             continue;
         }
 
-        // Record start time
-        clock_t start_time = clock();
+        // Record start time (wall-clock time for accurate GPU timing)
+        struct timespec start_time, end_time;
+        clock_gettime(CLOCK_MONOTONIC, &start_time);
 
         // Run model
         int status = model.run_model(params, &result);
 
-        // Calculate execution time in milliseconds
-        clock_t end_time = clock();
-        long execution_time_ms = (long)((end_time - start_time) * 1000 / CLOCKS_PER_SEC);
+        // Calculate execution time in milliseconds (wall-clock time)
+        clock_gettime(CLOCK_MONOTONIC, &end_time);
+        long execution_time_ms = (long)((end_time.tv_sec - start_time.tv_sec) * 1000L +
+                                        (end_time.tv_nsec - start_time.tv_nsec) / 1000000L);
 
         if (status == 0) {
             print_results(model.name, &result, M);

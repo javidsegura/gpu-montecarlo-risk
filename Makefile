@@ -23,7 +23,7 @@ $(shell mkdir -p $(BIN_DIR) $(OBJ_DIR))
 UTIL_SRC = $(UTIL_DIR)/load_binary.c $(UTIL_DIR)/load_config.c $(UTIL_DIR)/csv_writer.c
 SERIAL_SRC = $(SRC_DIR)/02-C-serial/monte_carlo_serial.c
 OPENMP_SRC = $(SRC_DIR)/03-openMP/monte_carlo_omp.c
-CUDA_SRC = $(SRC_DIR)/05-GPU/monte_carlo_cuda.cu
+CUDA_SRC = $(SRC_DIR)/05-GPU/monte_carlos_cuda.cu
 MAIN_SRC = $(SRC_DIR)/main_runner.c
 
 # Object files
@@ -33,6 +33,27 @@ OPENMP_OBJ = $(OBJ_DIR)/monte_carlo_omp.o
 CUDA_OBJ = $(OBJ_DIR)/monte_carlo_cuda.o
 MAIN_OBJ = $(OBJ_DIR)/main_runner.o
 
+# Check if CUDA source exists and nvcc is available (optional)
+CUDA_SRC_EXISTS = $(wildcard $(CUDA_SRC))
+NVCC_AVAILABLE = $(shell which $(NVCC) > /dev/null 2>&1 && echo yes || echo)
+CUDA_AVAILABLE = $(if $(and $(CUDA_SRC_EXISTS),$(NVCC_AVAILABLE)),yes,)
+
+# Base object files (always needed)
+BASE_OBJ = $(MAIN_OBJ) $(SERIAL_OBJ) $(OPENMP_OBJ) $(UTIL_OBJ)
+
+# Include CUDA object if available
+ifeq ($(CUDA_AVAILABLE),)
+    # CUDA not available, CPU-only build
+    ALL_OBJ = $(BASE_OBJ)
+    LINKER = $(CC)
+    LINK_FLAGS = $(LDFLAGS) $(OMPFLAGS)
+else
+    # CUDA available, include it
+    ALL_OBJ = $(BASE_OBJ) $(CUDA_OBJ)
+    LINKER = $(NVCC)
+    LINK_FLAGS = $(NVCCFLAGS) $(LDFLAGS) $(CUDA_LDFLAGS) -Xcompiler "$(OMPFLAGS)"
+endif
+
 # Target executable
 TARGET = $(BIN_DIR)/monte_carlo
 
@@ -40,9 +61,9 @@ TARGET = $(BIN_DIR)/monte_carlo
 all: $(TARGET)
 
 # Link main executable
-$(TARGET): $(MAIN_OBJ) $(SERIAL_OBJ) $(OPENMP_OBJ) $(CUDA_OBJ) $(UTIL_OBJ)
+$(TARGET): $(ALL_OBJ)
 	@echo "Linking $@..."
-	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS) -Xcompiler "$(OMPFLAGS)"
+	$(LINKER) $(LINK_FLAGS) -o $@ $^
 	@echo "Build complete: $@"
 
 # Compile main runner
@@ -60,10 +81,12 @@ $(OPENMP_OBJ): $(OPENMP_SRC)
 	@echo "Compiling $< with OpenMP..."
 	$(CC) $(CFLAGS) $(OMPFLAGS) -I$(SRC_DIR) -c $< -o $@
 
-# Compile CUDA model
+# Compile CUDA model (only if source exists and nvcc is available)
+ifneq ($(CUDA_AVAILABLE),)
 $(CUDA_OBJ): $(CUDA_SRC)
 	@echo "Compiling $< with CUDA..."
 	$(NVCC) $(NVCCFLAGS) -I$(SRC_DIR) -c $< -o $@
+endif
 
 # Compile utilities
 $(OBJ_DIR)/load_binary.o: $(UTIL_DIR)/load_binary.c
