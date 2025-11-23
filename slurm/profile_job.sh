@@ -13,6 +13,8 @@
 
 set -Eeuo pipefail
 
+TIME_BIN="/cvmfs/soft.computecanada.ca/gentoo/2023/x86-64-v3/usr/bin/time"
+
 SUBMIT_DIR="${SLURM_SUBMIT_DIR:-$PWD}"
 BIN="${SUBMIT_DIR}/bin/monte_carlo"
 RESULTS_DIR="${SUBMIT_DIR}/results/profile_$(date +%Y%m%d_%H%M%S)"
@@ -34,7 +36,7 @@ echo ""
 echo "PHASE 1: Baseline timing & resource usage"
 # Wall-clock time, memory usage, and CPU statistics.
 # Output: baseline_time.txt
-/usr/bin/time -v $RUN "$BIN" > "$RESULTS_DIR/baseline_time.txt" 2>&1
+$TIME_BIN -v $RUN "$BIN" > "$RESULTS_DIR/baseline_time.txt" 2>&1
 echo "baseline_time.txt"
 
 # PHASE 2: gprof run (generate gmon.out)
