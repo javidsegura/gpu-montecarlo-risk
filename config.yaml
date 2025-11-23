@@ -2,7 +2,7 @@
 
 # Model configuration
 models:
-  - openmp
+  - openmp_opt 
 
 # Data fetching parameters
 start: "2015-01-01"  # Start date for historical data (YYYY-MM-DD)

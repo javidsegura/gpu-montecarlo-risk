@@ -13,6 +13,7 @@
 
 extern ModelFunctions get_serial_model(void);
 extern ModelFunctions get_openmp_model(void);
+extern ModelFunctions get_opt_openmp_model(void);
 // extern ModelFunctions get_cuda_model(void);
 
 // Print final results
@@ -180,6 +181,9 @@ int main() {
         }
         else if (strcmp(model_type, "openmp") == 0) {
             model = get_openmp_model();
+        }
+        else if (strcmp(model_type, "openmp_opt") == 0) {  
+            model = get_openmp_opt_model();
         }
         else {
             fprintf(stderr, "Error: Unknown model type '%s'\n", model_type);
