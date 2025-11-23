@@ -166,6 +166,10 @@ int main() {
     for (int i = 0; i < config.num_models; i++) {
         const char *model_type = config.models[i];
         MonteCarloResult result = {0};
+
+        // Explicitly initialize timing field to "not measured"
+        result.kernel_time_ms = -1.0;
+
         ModelFunctions model;
 
         printf("\n=== Running %s model ===\n", model_type);
@@ -203,8 +207,14 @@ int main() {
         if (kernel_time_ms >= 0.0) {
             // Model supports kernel timing - calculate overhead and throughput
             overhead_time_ms = (double)execution_time_ms - kernel_time_ms;
-            throughput_trials_per_second = (kernel_time_ms > 0.0) ?
-                ((double)M / kernel_time_ms * 1000.0) : -1.0;
+
+            // Calculate throughput: trials per second
+            // Convert kernel_time_ms to seconds, then divide trials by time
+            if (kernel_time_ms > 0.0) {
+                double kernel_time_sec = kernel_time_ms / 1000.0;
+                throughput_trials_per_second = (double)M / kernel_time_sec;
+            }
+            // else: kernel_time_ms == 0.0, keep throughput as -1.0 (can't divide by zero)
         }
 
         if (status == 0) {
