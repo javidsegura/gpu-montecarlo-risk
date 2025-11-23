@@ -53,6 +53,9 @@ $(BUILD_DIR)/monte_carlo_serial.o: $(SERIAL_SRC)
 $(BUILD_DIR)/monte_carlo_omp.o: $(OMP_SRC)
 		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -c $< -o $@
 
+$(BUILD_DIR)/monte_carlo_opt_omp.o: $(OMP_OPT_SRC)
+		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -c $< -o $@
+
 $(BUILD_DIR)/main_runner.o: $(MAIN_SRC)
 		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
 

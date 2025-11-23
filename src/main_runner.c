@@ -13,7 +13,7 @@
 
 extern ModelFunctions get_serial_model(void);
 extern ModelFunctions get_openmp_model(void);
-extern ModelFunctions get_opt_openmp_model(void);
+extern ModelFunctions get_openmp_opt_model(void);
 // extern ModelFunctions get_cuda_model(void);
 
 // Print final results

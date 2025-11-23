@@ -136,7 +136,7 @@ static void openmp_cleanup_state(void *model_state) {
 }
 
 // Main simulation
-static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
+static int openmp_opt_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     printf("Starting OPENMP Monte Carlo simulation with M = %d trials...\n", params->M);
     printf("Parameters: N=%d, k=%d, x=%.2f%%\n", params->N, params->k, params->x * 100);
 
