@@ -131,6 +131,9 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     // STEP 3: Run M trials in PARALLEL using OpenMP
     int count = 0;
 
+    // Start timing the kernel (parallel computation)
+    double kernel_start_time = omp_get_wtime();
+
     #pragma omp parallel
     {
         // Allocate thread-local workspace ONCE per thread (major optimization)
@@ -158,8 +161,13 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
         gsl_vector_free(R);
     }
 
+    // End timing the kernel
+    double kernel_end_time = omp_get_wtime();
+    result->kernel_time_ms = (kernel_end_time - kernel_start_time) * 1000.0;
+
     result->count = count;
     printf("Simulation complete\n");
+    printf("  Kernel time: %.3f ms\n", result->kernel_time_ms);
 
     // STEP 4: Calculate final probability estimate
     result->P_hat = (double)result->count / params->M;

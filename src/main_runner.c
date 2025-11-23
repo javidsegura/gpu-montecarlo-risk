@@ -191,9 +191,21 @@ int main() {
         // Calculate execution time in milliseconds
         clock_t end_time = clock();
         long execution_time_ms = (long)((end_time - start_time) * 1000 / CLOCKS_PER_SEC);
-        
+
         // Get throughput in seconds
         int throughput = (int)round((double)M * 1000.0 / (double)execution_time_ms);
+
+        // Calculate detailed timing metrics from kernel time
+        double kernel_time_ms = result.kernel_time_ms;
+        double overhead_time_ms = -1.0;
+        double throughput_trials_per_second = -1.0;
+
+        if (kernel_time_ms >= 0.0) {
+            // Model supports kernel timing - calculate overhead and throughput
+            overhead_time_ms = (double)execution_time_ms - kernel_time_ms;
+            throughput_trials_per_second = (kernel_time_ms > 0.0) ?
+                ((double)M / kernel_time_ms * 1000.0) : -1.0;
+        }
 
         if (status == 0) {
             print_results(model.name, &result, M);
@@ -204,6 +216,9 @@ int main() {
                 .timestamp = (long)time(NULL),
                 .execution_time_ms = execution_time_ms,
                 .MC_throughput_secs = throughput,
+                .kernel_time_ms = kernel_time_ms,
+                .overhead_time_ms = overhead_time_ms,
+                .throughput_trials_per_second = throughput_trials_per_second,
                 .comment = user_comment ? user_comment : "",
                 .start_date = config.start,
                 .end_date = config.end,

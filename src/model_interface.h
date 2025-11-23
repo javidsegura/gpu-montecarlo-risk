@@ -13,6 +13,9 @@ typedef struct {
     double std_error;       // Standard error of the estimate
     double ci_lower;        // Lower bound of 95% confidence interval
     double ci_upper;        // Upper bound of 95% confidence interval
+
+    // Performance metrics
+    double kernel_time_ms;  // Time spent in computation kernel (-1.0 if not measured)
 } MonteCarloResult;
 
 // Input parameters for the Monte Carlo simulation

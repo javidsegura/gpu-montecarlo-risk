@@ -144,6 +144,9 @@ static int serial_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     result->ci_lower = fmax(0.0, result->P_hat - margin);
     result->ci_upper = fmin(1.0, result->P_hat + margin);
 
+    // Set kernel_time_ms to -1.0 (not measured for serial implementation)
+    result->kernel_time_ms = -1.0;
+
     // STEP 6: Cleanup internal state (result cleanup handled by main_runner)
     serial_cleanup_state(model_state);
 

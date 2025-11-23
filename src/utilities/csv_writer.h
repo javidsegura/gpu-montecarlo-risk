@@ -10,6 +10,9 @@ typedef struct {
     long timestamp;                    // Unix timestamp when simulation was run
     long execution_time_ms;            // Execution time in milliseconds
     int MC_throughput_secs;            // Monte Carlo throughput in seconds
+    double kernel_time_ms;             // Time spent in computation kernel
+    double overhead_time_ms;           // Time spent in init/cleanup
+    double throughput_trials_per_second; // Trials per second throughput
     const char *comment;               // User comment
 
     // Configuration parameters
