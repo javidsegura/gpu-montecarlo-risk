@@ -293,3 +293,12 @@ gpu_memory_*.dump
 # Auto-generated files
 *.generated.*
 auto_*
+
+
+
+
+!data/mu.bin
+!data/params.bin  
+!data/sigma.bin
+
+
