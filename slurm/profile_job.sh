@@ -4,8 +4,8 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=3G
 #SBATCH --time=00:30:00
-#SBATCH --output=profile_%j.out
-#SBATCH --error=profile_%j.err
+#SBATCH --output=results/logs/profile_job_%j.out
+#SBATCH --error=results/logs/profile_job_%j.err
 
 # profile_job.sh
 # CPU profiling and summary (time + gprof + SLURM)
@@ -16,6 +16,8 @@ set -Eeuo pipefail
 TIME_BIN="/cvmfs/soft.computecanada.ca/gentoo/2023/x86-64-v3/usr/bin/time"
 
 SUBMIT_DIR="${SLURM_SUBMIT_DIR:-$PWD}"
+LOG_DIR="${SUBMIT_DIR}/results/logs"
+mkdir -p "$LOG_DIR"
 BIN="${SUBMIT_DIR}/bin/monte_carlo"
 RESULTS_DIR="${SUBMIT_DIR}/results/profile_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$RESULTS_DIR"
