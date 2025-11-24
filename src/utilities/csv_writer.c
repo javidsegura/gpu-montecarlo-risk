@@ -23,7 +23,7 @@ static void format_timestamp(long timestamp, char *buffer, size_t buffer_size) {
 
 // Write CSV header
 static int write_csv_header(FILE *file) {
-    fprintf(file, "iterationnumber,timestamp,execution_time_ms,MC_throughput_secs,kernel_time_ms,overhead_time_ms,throughput_trials_per_second,comment,");
+    fprintf(file, "iterationnumber,timestamp,execution_time_ms,MC_throughput_secs,kernel_time_ms,overhead_time_ms,kernel_throughput,comment,");
     fprintf(file, "start_date,end_date,train_ratio,M,k,x,");
     fprintf(file, "model_name,seed,nodes,threads,processes, ");
     fprintf(file, "indices,actual_freq,");
@@ -230,7 +230,7 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
             data->MC_throughput_secs,
             data->kernel_time_ms,
             data->overhead_time_ms,
-            data->throughput_trials_per_second,
+            data->kernel_throughput,
             comment_escaped ? comment_escaped : "",
             // Configuration
             data->start_date ? data->start_date : "",

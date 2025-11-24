@@ -1,7 +1,7 @@
 # Makefile for Monte Carlo Risk Simulation
 
-# Compiler and flags
-CC = gcc
+# Compiler and flags (use mpicc for MPI support)
+CC = mpicc
 CFLAGS = -Wall -O3 -march=native -g
 # macOS clang support: use -Xclang -fopenmp for clang, -fopenmp for GCC
 OMP_FLAGS = -fopenmp
@@ -27,20 +27,23 @@ BIN_DIR = bin
 SERIAL_SRC = $(SRC_DIR)/02-C-serial/monte_carlo_serial.c
 OMP_SRC = $(SRC_DIR)/02-openMP/monte_carlo_omp.c
 OMP_OPT_SRC = $(SRC_DIR)/02-OptimizedOpenMP/monte_carlo_opt_omp.c
+MPI_SRC = $(SRC_DIR)/04-MPI/monte_carlo_mpi_openmp.c
 MAIN_SRC = $(SRC_DIR)/main_runner.c
 UTIL_SRC = $(SRC_DIR)/utilities/load_binary.c
 CONFIG_SRC = $(SRC_DIR)/utilities/load_config.c
 CSV_SRC = $(SRC_DIR)/utilities/csv_writer.c
 
 # Object files
-OBJS = $(BUILD_DIR)/main_runner.o $(BUILD_DIR)/monte_carlo_serial.o $(BUILD_DIR)/monte_carlo_omp.o $(BUILD_DIR)/monte_carlo_opt_omp.o $(BUILD_DIR)/load_binary.o $(BUILD_DIR)/load_config.o $(BUILD_DIR)/csv_writer.o
+OBJS = $(BUILD_DIR)/main_runner.o $(BUILD_DIR)/monte_carlo_serial.o $(BUILD_DIR)/monte_carlo_omp.o $(BUILD_DIR)/monte_carlo_opt_omp.o $(BUILD_DIR)/monte_carlo_mpi_openmp.o $(BUILD_DIR)/load_binary.o $(BUILD_DIR)/load_config.o $(BUILD_DIR)/csv_writer.o
 
 # Target executable
 TARGET = $(BIN_DIR)/monte_carlo
 
 # Default target: compile everything into one executable
 all: directories $(TARGET)
-		@echo "Build complete. Run with: ./bin/monte_carlo [serial|openmp]"
+		@echo "Build complete. Run with:"
+		@echo "  ./bin/monte_carlo                    (serial/openmp models)"
+		@echo "  mpirun -np 4 ./bin/monte_carlo       (mpi_openmp model)"
 
 # Create build directories
 directories:
@@ -54,6 +57,9 @@ $(BUILD_DIR)/monte_carlo_omp.o: $(OMP_SRC)
 		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -c $< -o $@
 
 $(BUILD_DIR)/monte_carlo_opt_omp.o: $(OMP_OPT_SRC)
+		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -c $< -o $@
+
+$(BUILD_DIR)/monte_carlo_mpi_openmp.o: $(MPI_SRC)
 		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -c $< -o $@
 
 $(BUILD_DIR)/main_runner.o: $(MAIN_SRC)

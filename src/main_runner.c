@@ -1,10 +1,11 @@
 // Main entry point for running Monte Carlo simulations with different implementations
-// Supports: Serial, OpenMP (future), CUDA (future)
+// Supports: Serial, OpenMP, MPI+OpenMP, CUDA (future)
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <mpi.h>
 #include "model_interface.h"
 #include "utilities/load_binary.h"
 #include "utilities/load_config.h"
@@ -14,11 +15,13 @@
 extern ModelFunctions get_serial_model(void);
 extern ModelFunctions get_openmp_model(void);
 extern ModelFunctions get_openmp_opt_model(void);
+extern ModelFunctions get_mpi_openmp_model(void);
 // extern ModelFunctions get_cuda_model(void);
 
 // Print final results
 void print_results(const char *model_name, MonteCarloResult *result, int M) {
     printf("\n%s RESULTS\n", model_name);
+    printf("Estimated Probability (P_MIN): %.6f\n", result->P_hat);
     printf("Estimated Probability (P_MIN): %.6f\n", result->P_hat);
     printf("Extreme Events Count: %d out of %d trials\n", result->count, M);
     printf("Standard Error: %.6f\n", result->std_error);
@@ -84,10 +87,24 @@ int get_next_iteration_number() {
     return iteration_counter++;
 }
 
-int main() {
-    printf("Monte Carlo Financial Risk Simulation\n\n");
-    
-    printf("Loading parameters from binary files...\n");
+int main(int argc, char **argv) {
+    // Initialize MPI 
+    MPI_Init(&argc, &argv);
+
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank); // MPI rank
+    MPI_Comm_size(MPI_COMM_WORLD, &size); //MPI processes
+
+    // Only rank 0 prints (prevents duplicate output with multiple MPI processes)
+    if (rank == 0) {
+        printf("Monte Carlo Financial Risk Simulation\n");
+        if (size > 1) {
+            printf("Running with %d MPI processes\n\n", size);
+        } else {
+            printf("\n");
+        }
+        printf("Loading parameters from binary files...\n");
+    }
 
     // Load mu and Sigma and actual_freq from binary files
     gsl_vector *mu = load_mu_binary("data/mu.bin");
@@ -95,13 +112,16 @@ int main() {
     double actual_freq = load_actual_freq_binary("data/params.bin");
 
     if (!mu || !Sigma) {
-        fprintf(stderr, "Error: Failed to load binary files. Run Python preprocessing first.\n");
+        if (rank == 0) {
+            fprintf(stderr, "Error: Failed to load binary files. Run Python preprocessing first.\n");
+        }
         if (mu) gsl_vector_free(mu);
         if (Sigma) gsl_matrix_free(Sigma);
+        MPI_Finalize(); // early exit
         return 1;
     }
 
-    if (actual_freq < 0.0) {
+    if (actual_freq < 0.0 && rank == 0) {
         fprintf(stderr, "Warning: Failed to load actual_freq from params.bin, using NaN\n");
         actual_freq = NAN;
     }
@@ -112,9 +132,12 @@ int main() {
     // Load configuration parameters from config.yaml
     ConfigParams config;
     if (load_config("config.yaml", &config) != 0) {
-        fprintf(stderr, "Error: Failed to load config.yaml. Exiting.\n");
+        if (rank == 0) {
+            fprintf(stderr, "Error: Failed to load config.yaml. Exiting.\n");
+        }
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
+        MPI_Finalize(); // early exit
         return 1;
     }
 
@@ -122,12 +145,14 @@ int main() {
     double x = config.x;
     int M = config.M;
 
-    printf("\nSimulation Configuration:\n");
-    printf("  Number of assets (N): %d\n", N);
-    printf("  Crash threshold (k): %d\n", k);
-    printf("  Return threshold (x): %.2f%%\n", x * 100);
-    printf("  Number of trials (M): %d\n", M);
-    printf("  Training ratio: %.2f%%\n", config.train_ratio * 100);
+    if (rank == 0) {
+        printf("\nSimulation Configuration:\n");
+        printf("  Number of assets (N): %d\n", N);
+        printf("  Crash threshold (k): %d\n", k);
+        printf("  Return threshold (x): %.2f%%\n", x * 100);
+        printf("  Number of trials (M): %d\n", M);
+        printf("  Training ratio: %.2f%%\n", config.train_ratio * 100);
+    }
 
     // Get user comment from config 
     char *user_comment = config.comment;
@@ -135,10 +160,13 @@ int main() {
     // Initialize parameters
     MonteCarloParams *params = (MonteCarloParams *)malloc(sizeof(MonteCarloParams));
     if (!params) {
-        fprintf(stderr, "Error: Failed to allocate parameters\n");
+        if (rank == 0) {
+            fprintf(stderr, "Error: Failed to allocate parameters\n");
+        }
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
         free_config(&config);
+        MPI_Finalize(); // early exit
         return 1;
     }
 
@@ -161,7 +189,7 @@ int main() {
     get_slurm_info(&slurm_nodes, &slurm_threads, &slurm_processes);
     // Models to run - TODO: later read from config
     // const char *models_to_run[] = {"serial", "openmp"};
-    // int num_models = sizeof(models_to_run) / sizeof(models_to_run[0]);
+    // int num_models = sizeof(models_to_run) / sizeof(models_to_run[0])
 
     // Run all models from config
     for (int i = 0; i < config.num_models; i++) {
@@ -173,7 +201,9 @@ int main() {
 
         ModelFunctions model;
 
-        printf("\n=== Running %s model ===\n", model_type);
+        if (rank == 0) {
+            printf("\n=== Running %s model ===\n", model_type);
+        }
 
         // Select model based on type
         if (strcmp(model_type, "serial") == 0) {
@@ -182,18 +212,37 @@ int main() {
         else if (strcmp(model_type, "openmp") == 0) {
             model = get_openmp_model();
         }
-        else if (strcmp(model_type, "openmp_opt") == 0) {  
+        else if (strcmp(model_type, "openmp_opt") == 0) {
             model = get_openmp_opt_model();
         }
+        else if (strcmp(model_type, "mpi_openmp") == 0) {
+            model = get_mpi_openmp_model();
+        }
         else {
-            fprintf(stderr, "Error: Unknown model type '%s'\n", model_type);
+            if (rank == 0) {
+                fprintf(stderr, "Error: Unknown model type '%s'\n", model_type);
+            }
             continue;
         }
 
         // Record start time
         clock_t start_time = clock();
 
-        // Run model
+        // ADD?
+        """
+        int all_ranks_needed = (strcmp(model_type, "mpi_openmp") == 0);
+
+        int status = 0;
+        if (all_ranks_needed || rank == 0) {
+            status = model.run_model(params, &result);
+        } else {
+            status = 0;
+        }
+        // Synchronize all ranks after running the model
+        MPI_Barrier(MPI_COMM_WORLD);
+        """
+
+        // Run model (all ranks participate for MPI models, serial/OpenMP run normally)
         int status = model.run_model(params, &result);
 
         // Calculate execution time in milliseconds
@@ -206,7 +255,7 @@ int main() {
         // Calculate detailed timing metrics from kernel time
         double kernel_time_ms = result.kernel_time_ms;
         double overhead_time_ms = -1.0;
-        double throughput_trials_per_second = -1.0;
+        double kernel_throughput = -1.0;
 
         if (kernel_time_ms >= 0.0) {
             // Model supports kernel timing - calculate overhead and throughput
@@ -216,63 +265,74 @@ int main() {
             // Convert kernel_time_ms to seconds, then divide trials by time
             if (kernel_time_ms > 0.0) {
                 double kernel_time_sec = kernel_time_ms / 1000.0;
-                throughput_trials_per_second = (double)M / kernel_time_sec;
+                kernel_throughput = (double)M / kernel_time_sec;
             }
             // else: kernel_time_ms == 0.0, keep throughput as -1.0 (can't divide by zero)
         }
 
         if (status == 0) {
-            print_results(model.name, &result, M);
+            // Only rank 0 prints results and writes to CSV
+            if (rank == 0) {
+                print_results(model.name, &result, M);
 
-            // Write results to CSV
-            SimulationResultsData results_data = {
-                .iteration_id = iteration_id,
-                .timestamp = (long)time(NULL),
-                .execution_time_ms = execution_time_ms,
-                .MC_throughput_secs = throughput,
-                .kernel_time_ms = kernel_time_ms,
-                .overhead_time_ms = overhead_time_ms,
-                .throughput_trials_per_second = throughput_trials_per_second,
-                .comment = user_comment ? user_comment : "",
-                .start_date = config.start,
-                .end_date = config.end,
-                .train_ratio = config.train_ratio,
-                .M = M,
-                .k = k,
-                .x = x,
-                .model_name = model.name,
-                .seed = config.random_seed,  // Random seed from config
-                .nodes = nodes,
-                .threads = threads,
-                .processes = processes,
-                .indices = config.indices,
-                .num_indices = config.num_indices,
-                .actual_freq = actual_freq,
-                .P_hat = result.P_hat,
-                .count = result.count,
-                .std_error = result.std_error,
-                .ci_lower = result.ci_lower, 
-                .ci_upper = result.ci_upper
-            };
+                // Write results to CSV
+                SimulationResultsData results_data = {
+                    .iteration_id = iteration_id,
+                    .timestamp = (long)time(NULL),
+                    .execution_time_ms = execution_time_ms,
+                    .MC_throughput_secs = throughput,
+                    .kernel_time_ms = kernel_time_ms,
+                    .overhead_time_ms = overhead_time_ms,
+                    .kernel_throughput = kernel_throughput,
+                    .comment = user_comment ? user_comment : "",
+                    .start_date = config.start,
+                    .end_date = config.end,
+                    .train_ratio = config.train_ratio,
+                    .M = M,
+                    .k = k,
+                    .x = x,
+                    .model_name = model.name,
+                    .seed = config.random_seed,  // Random seed from config
+                    .nodes = nodes,
+                    .threads = threads,
+                    .processes = processes,
+                    .indices = config.indices,
+                    .num_indices = config.num_indices,
+                    .actual_freq = actual_freq,
+                    .P_hat = result.P_hat,
+                    .count = result.count,
+                    .std_error = result.std_error,
+                    .ci_lower = result.ci_lower,
+                    .ci_upper = result.ci_upper
+                };
 
-            if (write_results_to_csv("results/simulation_results.csv", &results_data) != 0) {
-                fprintf(stderr, "Warning: Failed to write results to CSV\n");
-            } else {
-                printf("Results written to results/simulation_results.csv\n");
+                if (write_results_to_csv("results/simulation_results.csv", &results_data) != 0) {
+                    fprintf(stderr, "Warning: Failed to write results to CSV\n");
+                } else {
+                    printf("Results written to results/simulation_results.csv\n");
+                }
             }
         } else {
-            fprintf(stderr, "Error: %s model failed\n", model.name);
+            if (rank == 0) {
+                fprintf(stderr, "Error: %s model failed\n", model.name);
+            }
         }
 
         // Always cleanup S_values regardless of success/failure
         make_clean(&result);
 
-        printf("\n");
+        if (rank == 0) {
+            printf("\n");
+        }
     }
 
     free_params(params);
     free_config(&config);
 
-    printf("Simulation complete.\n");
+    if (rank == 0) {
+        printf("Simulation complete.\n");
+    }
+
+    MPI_Finalize();
     return 0;
 }

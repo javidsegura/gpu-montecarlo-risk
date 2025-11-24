@@ -12,7 +12,7 @@ typedef struct {
     int MC_throughput_secs;            // Monte Carlo throughput in seconds
     double kernel_time_ms;             // Time spent in computation kernel
     double overhead_time_ms;           // Time spent in init/cleanup
-    double throughput_trials_per_second; // Trials per second throughput
+    double kernel_throughput;          // Kernel throughput in trials per second
     const char *comment;               // User comment
 
     // Configuration parameters
