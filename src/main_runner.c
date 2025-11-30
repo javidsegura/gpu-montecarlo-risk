@@ -229,18 +229,19 @@ int main(int argc, char **argv) {
         clock_t start_time = clock();
 
         // ADD?
-        """
-        int all_ranks_needed = (strcmp(model_type, "mpi_openmp") == 0);
+        
+        // int all_ranks_needed = (strcmp(model_type, "mpi_openmp") == 0);
 
-        int status = 0;
-        if (all_ranks_needed || rank == 0) {
-            status = model.run_model(params, &result);
-        } else {
-            status = 0;
-        }
+        // int status = 0;
+        // if (all_ranks_needed || rank == 0) {
+        //     status = model.run_model(params, &result);
+        // } else {
+        //     status = 0;
+        // }
+
         // Synchronize all ranks after running the model
-        MPI_Barrier(MPI_COMM_WORLD);
-        """
+        // MPI_Barrier(MPI_COMM_WORLD);
+    
 
         // Run model (all ranks participate for MPI models, serial/OpenMP run normally)
         int status = model.run_model(params, &result);
