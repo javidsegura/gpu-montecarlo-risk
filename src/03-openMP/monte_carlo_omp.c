@@ -112,11 +112,14 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     printf("Starting OPENMP Monte Carlo simulation with M = %d trials...\n", params->M);
     printf("Parameters: N=%d, k=%d, x=%.2f%%\n", params->N, params->k, params->x * 100);
 
+    // SAACT: Log simulation start with parameters
+    fprintf(stderr, "[openmp_simulate] START_SIMULATION | actor=openmp | ctx={N=%d, k=%d, x=%.4f, M=%d, seed=%d} | level=INFO\n", params->N, params->k, params->x, params->M, params->random_seed);
+
     // STEP 1: Allocate result arrays
     result->count = 0;
     result->S_values = (int *)calloc(params->M, sizeof(int));
     if (!result->S_values) {
-        fprintf(stderr, "Error: Failed to allocate S_values array\n");
+        fprintf(stderr, "[openmp_simulate] ALLOCATE_MEMORY | actor=openmp | ctx={M=%d, size_bytes=%zu} | level=ERROR: allocation_failed\n", params->M, params->M * sizeof(int));
         return -1;
     }
 
@@ -124,6 +127,7 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     void *model_state = NULL;
     int status = openmp_init(params, &model_state);
     if (status != 0) {
+        fprintf(stderr, "[openmp_init] INITIALIZE_MODEL | actor=openmp | ctx={N=%d} | level=ERROR: init_failed\n", params->N);
         free(result->S_values);
         return -1;
     }
@@ -167,6 +171,7 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
 
     // Check for allocation errors after parallel region
     if (allocation_error) {
+        fprintf(stderr, "[openmp_simulate] THREAD_ALLOCATION | actor=openmp | ctx={N=%d, M=%d} | level=ERROR: thread_local_allocation_failed\n", params->N, params->M);
         openmp_cleanup_state(model_state);
         free(result->S_values);
         return -1;
@@ -183,6 +188,9 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     double margin = 1.96 * result->std_error;
     result->ci_lower = fmax(0.0, result->P_hat - margin);
     result->ci_upper = fmin(1.0, result->P_hat + margin);
+
+    // SAACT: Log simulation end with results
+    fprintf(stderr, "[openmp_simulate] END_SIMULATION | actor=openmp | ctx={M=%d, count=%d, P_hat=%.6f, ci_lower=%.6f, ci_upper=%.6f} | level=INFO\n", params->M, result->count, result->P_hat, result->ci_lower, result->ci_upper);
 
     // STEP 6: Cleanup internal state (result cleanup handled by main_runner)
     openmp_cleanup_state(model_state);
