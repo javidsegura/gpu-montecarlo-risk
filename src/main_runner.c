@@ -20,7 +20,9 @@ extern ModelFunctions get_openmp_model(void);
 #ifdef MPI_BUILD
 extern ModelFunctions get_mpi_model(void);
 #endif
-// extern ModelFunctions get_cuda_model(void);
+#ifdef CUDA_BUILD
+extern ModelFunctions get_cuda_model(void);
+#endif
 
 // Print final results
 void print_results(const char *model_name, MonteCarloResult *result, int M) {
@@ -194,6 +196,14 @@ int main() {
             model = get_mpi_model();
 #else
             fprintf(stderr, "Error: MPI model not available in this build\n");
+            continue;
+#endif
+        }
+        else if (strcmp(model_type, "cuda") == 0 || strcmp(model_type, "gpu") == 0) {
+#ifdef CUDA_BUILD
+            model = get_cuda_model();
+#else
+            fprintf(stderr, "Error: CUDA model not available in this build\n");
             continue;
 #endif
         }
