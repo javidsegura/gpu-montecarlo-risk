@@ -52,6 +52,11 @@ def fetch_and_split(indices:dict, start="2015-01-01", end="2025-01-01", train_ra
         )
 
     # Split train/test
+    if not 0.0 < train_ratio < 1.0:
+        raise ValueError(
+            f"Invalid train_ratio={train_ratio}. It must be between 0 and 1 "
+            "so both train and test sets are non-empty."
+        )
     split_idx = int(len(returns) * train_ratio)
     train = returns.iloc[:split_idx]
     test = returns.iloc[split_idx:]

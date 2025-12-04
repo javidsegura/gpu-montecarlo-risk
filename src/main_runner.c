@@ -1,6 +1,7 @@
 // Main entry point for running Monte Carlo simulations with different implementations
 // Supports: Serial, OpenMP (future), CUDA (future)
 
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -136,13 +137,25 @@ int main() {
     // Get user comment for this simulation run
     char *user_comment = get_user_comment();
 
+    // Use config comment as fallback if user comment is empty
+    char *final_comment = NULL;
+    if (user_comment && strlen(user_comment) > 0) {
+        final_comment = strdup(user_comment);
+    } else if (config.comment && strlen(config.comment) > 0) {
+        final_comment = strdup(config.comment);
+    } else {
+        final_comment = strdup("");
+    }
+    
+    if (user_comment) free(user_comment);
+
     // Initialize parameters
     MonteCarloParams *params = (MonteCarloParams *)malloc(sizeof(MonteCarloParams));
     if (!params) {
         fprintf(stderr, "Error: Failed to allocate parameters\n");
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
-        if (user_comment) free(user_comment);
+        if (final_comment) free(final_comment);
         free_config(&config);
         return 1;
     }
@@ -212,15 +225,17 @@ int main() {
             continue;
         }
 
-        // Record start time
-        clock_t start_time = clock();
+        // Record start time (wall-clock time for accurate GPU timing)
+        struct timespec start_time, end_time;
+        clock_gettime(CLOCK_MONOTONIC, &start_time);
 
         // Run model
         int status = model.run_model(params, &result);
 
-        // Calculate execution time in milliseconds
-        clock_t end_time = clock();
-        long execution_time_ms = (long)((end_time - start_time) * 1000 / CLOCKS_PER_SEC);
+        // Calculate execution time in milliseconds (wall-clock time)
+        clock_gettime(CLOCK_MONOTONIC, &end_time);
+        long execution_time_ms = (long)((end_time.tv_sec - start_time.tv_sec) * 1000L +
+                                        (end_time.tv_nsec - start_time.tv_nsec) / 1000000L);
 
         if (status == 0) {
             print_results(model.name, &result, M);
@@ -230,7 +245,7 @@ int main() {
                 .iteration_id = iteration_id,
                 .timestamp = (long)time(NULL),
                 .execution_time_ms = execution_time_ms,
-                .comment = user_comment ? user_comment : "",
+                .comment = final_comment,
                 .start_date = config.start,
                 .end_date = config.end,
                 .train_ratio = config.train_ratio,
@@ -269,7 +284,7 @@ int main() {
 
     free_params(params);
     free_config(&config);
-    if (user_comment) free(user_comment);
+    if (final_comment) free(final_comment);
 
     printf("Simulation complete.\n");
     return 0;

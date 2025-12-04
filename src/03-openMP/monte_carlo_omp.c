@@ -130,32 +130,46 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
 
     // STEP 3: Run M trials in PARALLEL using OpenMP
     int count = 0;
+    int allocation_error = 0;
 
     #pragma omp parallel
     {
-        // Allocate thread-local workspace ONCE per thread (major optimization)
         gsl_vector *Z = gsl_vector_alloc(params->N);
         gsl_vector *R = gsl_vector_alloc(params->N);
 
-        // Parallel loop over trials with reduction for count
-        // Use static scheduling for better cache locality and less overhead
-        #pragma omp for reduction(+:count) schedule(static)
-        for (int j = 0; j < params->M; j++) {
-            // Run trial using thread-local workspace
-            int S = 0;
-            openmp_run_trial(model_state, params, Z, R, &S);
+        if (!Z || !R) {
+            #pragma omp atomic write
+            allocation_error = 1;
+        }
 
-            result->S_values[j] = S;
+        #pragma omp barrier
 
-            // Check if this trial resulted in an extreme event
-            if (S >= params->k) {
-                count++;
+        if (!allocation_error) {
+            #pragma omp for reduction(+:count) schedule(static)
+            for (int j = 0; j < params->M; j++) {
+                // Run trial using thread local workspace
+                int S = 0;
+                openmp_run_trial(model_state, params, Z, R, &S);
+
+                result->S_values[j] = S;
+
+                if (S >= params->k) {
+                    count++;
+                }
             }
         }
 
-        // Free thread-local workspace
-        gsl_vector_free(Z);
-        gsl_vector_free(R);
+
+        if (R) gsl_vector_free(R);
+        if (Z) gsl_vector_free(Z);
+    
+    }
+
+    // Check for allocation errors after parallel region
+    if (allocation_error) {
+        openmp_cleanup_state(model_state);
+        free(result->S_values);
+        return -1;
     }
 
     result->count = count;

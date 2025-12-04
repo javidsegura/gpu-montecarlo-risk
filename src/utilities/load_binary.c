@@ -17,6 +17,13 @@ gsl_vector* load_mu_binary(const char *filename) {
         return NULL;
     }
 
+    // Validate dimension
+    if (N <= 0 || N > 1000000) {  // Reasonable upper bound of 1M elements
+        fprintf(stderr, "Error: Invalid dimension N=%d in %s (must be between 1 and 1000000)\n", N, filename);
+        fclose(f);
+        return NULL;
+    }
+
     // Allocate vector
     gsl_vector *mu = gsl_vector_alloc(N);
     if (!mu) {
@@ -54,6 +61,19 @@ gsl_matrix* load_sigma_binary(const char *filename) {
         return NULL;
     }
 
+    // Validate dimensions
+    if (rows <= 0 || cols <= 0) {
+        fprintf(stderr, "Error: Invalid dimensions rows=%d, cols=%d in %s (must be positive)\n", rows, cols, filename);
+        fclose(f);
+        return NULL;
+    }
+    // Check for potential overflow in rows * cols (must fit in size_t safely)
+    if ((long long)rows * (long long)cols > 2000000000LL) {  // Max 2B elements (< INT_MAX)
+        fprintf(stderr, "Error: Matrix too large (%lld elements) in %s\n", (long long)rows * (long long)cols, filename);
+        fclose(f);
+        return NULL;
+    }
+
     // Allocate matrix
     gsl_matrix *Sigma = gsl_matrix_alloc(rows, cols);
     if (!Sigma) {
@@ -63,7 +83,8 @@ gsl_matrix* load_sigma_binary(const char *filename) {
     }
 
     // Read data (row-major order from Python matches GSL default)
-    if (fread(Sigma->data, sizeof(double), rows * cols, f) != (size_t)(rows * cols)) {
+    size_t total_elements = (size_t)rows * (size_t)cols;
+    if (fread(Sigma->data, sizeof(double), total_elements, f) != total_elements) {
         fprintf(stderr, "Error: Failed to read data from %s\n", filename);
         gsl_matrix_free(Sigma);
         fclose(f);
@@ -88,6 +109,13 @@ double load_actual_freq_binary(const char *filename) {
         fprintf(stderr, "Error: Failed to read actual_freq from %s\n", filename);
         fclose(f);
         return -1.0;  // Return error
+    }
+
+    // Validate frequency value
+    if (actual_freq < 0.0 || actual_freq > 1.0) {
+        fprintf(stderr, "Error: Invalid actual_freq=%.6f in %s (must be between 0.0 and 1.0)\n", actual_freq, filename);
+        fclose(f);
+        return -1.0;
     }
 
     fclose(f);
