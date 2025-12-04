@@ -15,6 +15,7 @@
 extern ModelFunctions get_serial_model(void);
 extern ModelFunctions get_openmp_model(void);
 extern ModelFunctions get_cuda_model(void);
+extern ModelFunctions get_mpi_cuda_model(void);
 
 // Print final results
 void print_results(const char *model_name, MonteCarloResult *result, int M) {
@@ -187,6 +188,9 @@ int main() {
         }
         else if (strcmp(model_type, "cuda") == 0 || strcmp(model_type, "gpu") == 0) {
             model = get_cuda_model();
+        }
+        else if (strcmp(model_type, "mpi-cuda") == 0 || strcmp(model_type, "mpi") == 0) {
+            model = get_mpi_cuda_model();
         }
         else {
             fprintf(stderr, "Error: Unknown model type '%s'\n", model_type);

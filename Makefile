@@ -4,11 +4,13 @@
 # Compiler and flags
 CC = gcc
 NVCC = nvcc
+MPICC = mpicc
 CFLAGS = -Wall -Wextra -O3 -std=c11
 LDFLAGS = -lm -lgsl -lgslcblas -lyaml -lpthread
 OMPFLAGS = -fopenmp
 NVCCFLAGS = -O3 -arch=sm_60 -Xcompiler -fPIC
 CUDA_LDFLAGS = -lcudart -lcurand
+MPI_LDFLAGS = -lmpi
 
 # Directories
 SRC_DIR = src
@@ -38,6 +40,10 @@ CUDA_SRC_EXISTS = $(wildcard $(CUDA_SRC))
 NVCC_AVAILABLE = $(shell which $(NVCC) > /dev/null 2>&1 && echo yes || echo)
 CUDA_AVAILABLE = $(if $(and $(CUDA_SRC_EXISTS),$(NVCC_AVAILABLE)),yes,)
 
+# Check if MPI is available (optional)
+MPICC_AVAILABLE = $(shell which $(MPICC) > /dev/null 2>&1 && echo yes || echo)
+MPI_AVAILABLE = $(if $(MPICC_AVAILABLE),yes,)
+
 # Base object files (always needed)
 BASE_OBJ = $(MAIN_OBJ) $(SERIAL_OBJ) $(OPENMP_OBJ) $(UTIL_OBJ)
 
@@ -47,11 +53,24 @@ ifeq ($(CUDA_AVAILABLE),)
     ALL_OBJ = $(BASE_OBJ)
     LINKER = $(CC)
     LINK_FLAGS = $(LDFLAGS) $(OMPFLAGS)
+    # Add MPI support if available (for CPU-only MPI)
+    ifneq ($(MPI_AVAILABLE),)
+        LINKER = $(MPICC)
+        LINK_FLAGS += $(MPI_LDFLAGS)
+    endif
 else
     # CUDA available, include it
     ALL_OBJ = $(BASE_OBJ) $(CUDA_OBJ)
-    LINKER = $(NVCC)
-    LINK_FLAGS = $(NVCCFLAGS) $(LDFLAGS) $(CUDA_LDFLAGS) -Xcompiler "$(OMPFLAGS)"
+    # If MPI is available, compile CUDA with MPI support
+    ifneq ($(MPI_AVAILABLE),)
+        # CUDA + MPI: compile with USE_MPI flag, link MPI libraries
+        LINKER = $(NVCC)
+        LINK_FLAGS = $(NVCCFLAGS) $(LDFLAGS) $(CUDA_LDFLAGS) $(MPI_LDFLAGS) -Xcompiler "$(OMPFLAGS)"
+    else
+        # CUDA only
+        LINKER = $(NVCC)
+        LINK_FLAGS = $(NVCCFLAGS) $(LDFLAGS) $(CUDA_LDFLAGS) -Xcompiler "$(OMPFLAGS)"
+    endif
 endif
 
 # Target executable
@@ -85,7 +104,12 @@ $(OPENMP_OBJ): $(OPENMP_SRC)
 ifneq ($(CUDA_AVAILABLE),)
 $(CUDA_OBJ): $(CUDA_SRC)
 	@echo "Compiling $< with CUDA..."
+ifeq ($(MPI_AVAILABLE),)
 	$(NVCC) $(NVCCFLAGS) -I$(SRC_DIR) -c $< -o $@
+else
+	@echo "  (with MPI support)"
+	$(NVCC) $(NVCCFLAGS) -DUSE_MPI -I$(SRC_DIR) -c $< -o $@
+endif
 endif
 
 # Compile utilities

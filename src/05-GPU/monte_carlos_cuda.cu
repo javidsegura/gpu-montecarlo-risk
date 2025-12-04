@@ -1,10 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_linalg.h>
+
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
 
 extern "C" {
 #include "../model_interface.h"
@@ -169,4 +175,117 @@ extern "C" ModelFunctions get_cuda_model(void) {
     };
     return model;
 }
+
+#ifdef USE_MPI
+// MPI-CUDA model simulation - distributes trials across MPI ranks
+extern "C" int mpi_cuda_simulate(MonteCarloParams *params, MonteCarloResult *result) {
+    int rank, size;
+    int mpi_initialized = 0;
+    int should_finalize = 0;
+    
+    // Initialize MPI if not already initialized (e.g., when called directly without mpirun)
+    MPI_Initialized(&mpi_initialized);
+    if (!mpi_initialized) {
+        if (MPI_Init(NULL, NULL) != MPI_SUCCESS) {
+            fprintf(stderr, "Error: MPI_Init failed\n");
+            return -1;
+        }
+        should_finalize = 1;
+    }
+    
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    
+    if (rank == 0) {
+        printf("Starting MPI-CUDA Monte Carlo simulation with %d ranks...\n", size);
+        printf("Total trials (M): %d\n", params->M);
+    }
+    
+    // Split trials across ranks with load balancing
+    int M_local = params->M / size;
+    int remainder = params->M % size;
+    if (rank < remainder) {
+        M_local++;
+    }
+    
+    int M_start = rank * (params->M / size) + (rank < remainder ? rank : remainder);
+    
+    if (rank == 0) {
+        printf("Distributing %d trials across %d ranks:\n", params->M, size);
+    }
+    printf("  Rank %d: %d trials (starting from trial %d)\n", rank, M_local, M_start);
+    
+    // Adjust seed per rank to ensure independence
+    // Use a large prime number multiplier to ensure different sequences
+    unsigned long seed_local = params->random_seed + (unsigned long)rank * 1000003UL;
+    
+    // Create local parameters
+    MonteCarloParams local_params = *params;
+    local_params.M = M_local;
+    local_params.random_seed = seed_local;
+    
+    // Run CUDA simulation locally on this rank
+    MonteCarloResult local_result = {0};
+    int status = cuda_simulate(&local_params, &local_result);
+    
+    if (status != 0) {
+        fprintf(stderr, "Error: Rank %d CUDA simulation failed\n", rank);
+        if (should_finalize) {
+            MPI_Finalize();
+        }
+        return -1;
+    }
+    
+    // Aggregate results across all ranks
+    int total_count;
+    MPI_Reduce(&local_result.count, &total_count, 1, MPI_INT, 
+               MPI_SUM, 0, MPI_COMM_WORLD);
+    
+    // Calculate global statistics on rank 0
+    if (rank == 0) {
+        result->count = total_count;
+        result->P_hat = (double)total_count / params->M;
+        result->std_error = sqrt(result->P_hat * (1.0 - result->P_hat) / params->M);
+        double margin = 1.96 * result->std_error;
+        result->ci_lower = fmax(0.0, result->P_hat - margin);
+        result->ci_upper = fmin(1.0, result->P_hat + margin);
+        
+        // For S_values: only rank 0 needs it, but we'll set it to NULL
+        // since we don't need individual trial results for MPI version
+        result->S_values = NULL;
+        
+        printf("MPI-CUDA Simulation complete\n");
+        printf("  Local results aggregated from %d ranks\n", size);
+    } else {
+        // Non-root ranks don't need result data
+        result->count = 0;
+        result->P_hat = 0.0;
+        result->std_error = 0.0;
+        result->ci_lower = 0.0;
+        result->ci_upper = 0.0;
+        result->S_values = NULL;
+    }
+    
+    // Cleanup local result
+    if (local_result.S_values) {
+        free(local_result.S_values);
+        local_result.S_values = NULL;
+    }
+    
+    // Finalize MPI only if we initialized it
+    if (should_finalize) {
+        MPI_Finalize();
+    }
+    
+    return 0;
+}
+
+extern "C" ModelFunctions get_mpi_cuda_model(void) {
+    ModelFunctions model = {
+        .name = "mpi-cuda",
+        .run_model = mpi_cuda_simulate
+    };
+    return model;
+}
+#endif // USE_MPI
 
