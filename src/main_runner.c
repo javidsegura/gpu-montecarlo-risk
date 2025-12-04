@@ -12,9 +12,18 @@
 #include "utilities/csv_writer.h"
 #include <math.h> //for NaN
 
+#ifdef SERIAL_BUILD
 extern ModelFunctions get_serial_model(void);
+#endif
+#ifdef OPENMP_BUILD
 extern ModelFunctions get_openmp_model(void);
+#endif
+#ifdef MPI_BUILD
+extern ModelFunctions get_mpi_model(void);
+#endif
+#ifdef CUDA_BUILD
 extern ModelFunctions get_cuda_model(void);
+#endif
 
 // Print final results
 void print_results(const char *model_name, MonteCarloResult *result, int M) {
@@ -180,13 +189,36 @@ int main() {
 
         // Select model based on type
         if (strcmp(model_type, "serial") == 0) {
+#ifdef SERIAL_BUILD
             model = get_serial_model();
+#else
+            fprintf(stderr, "Error: Serial model not available in this build\n");
+            continue;
+#endif
         }
         else if (strcmp(model_type, "openmp") == 0) {
+#ifdef OPENMP_BUILD
             model = get_openmp_model();
+#else
+            fprintf(stderr, "Error: OpenMP model not available in this build\n");
+            continue;
+#endif
+        }
+        else if (strcmp(model_type, "mpi") == 0) {
+#ifdef MPI_BUILD
+            model = get_mpi_model();
+#else
+            fprintf(stderr, "Error: MPI model not available in this build\n");
+            continue;
+#endif
         }
         else if (strcmp(model_type, "cuda") == 0 || strcmp(model_type, "gpu") == 0) {
+#ifdef CUDA_BUILD
             model = get_cuda_model();
+#else
+            fprintf(stderr, "Error: CUDA model not available in this build\n");
+            continue;
+#endif
         }
         else {
             fprintf(stderr, "Error: Unknown model type '%s'\n", model_type);
