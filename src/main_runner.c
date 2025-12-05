@@ -75,12 +75,27 @@ char* get_user_comment() {
     return comment;
 }
 
-// Get system information (check how to handle it later)
+// Get system information from SLURM environment variables
 void get_system_info(int *nodes, int *threads, int *processes) {
-    // Placeholder implementation
-    *nodes = 0;
-    *threads = 0;
-    *processes = 0;
+    // Read from SLURM environment variables
+    char *env_val;
+    
+    // Number of nodes allocated
+    env_val = getenv("SLURM_NNODES");
+    *nodes = env_val ? atoi(env_val) : 1;
+    
+    // Number of threads (prefer OMP_NUM_THREADS, fallback to SLURM_CPUS_PER_TASK)
+    env_val = getenv("OMP_NUM_THREADS");
+    if (env_val) {
+        *threads = atoi(env_val);
+    } else {
+        env_val = getenv("SLURM_CPUS_PER_TASK");
+        *threads = env_val ? atoi(env_val) : 1;
+    }
+    
+    // Number of MPI processes/tasks
+    env_val = getenv("SLURM_NTASKS");
+    *processes = env_val ? atoi(env_val) : 1;
 }
 
 // Get the next iteration number (thread-safe counter)

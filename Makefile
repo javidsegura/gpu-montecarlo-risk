@@ -61,9 +61,9 @@ TARGET = $(BIN_DIR)/monte_carlo
 all: $(TARGET)
 
 # Link main executable
-$(TARGET): $(ALL_OBJ)
+$(TARGET): $(MAIN_OBJ) $(SERIAL_OBJ) $(OPENMP_OBJ) $(CUDA_OBJ) $(UTIL_OBJ)
 	@echo "Linking $@..."
-	$(LINKER) $(LINK_FLAGS) -o $@ $^
+	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS) -Xcompiler "$(OMPFLAGS)"
 	@echo "Build complete: $@"
 
 # Compile main runner
@@ -81,12 +81,10 @@ $(OPENMP_OBJ): $(OPENMP_SRC)
 	@echo "Compiling $< with OpenMP..."
 	$(CC) $(CFLAGS) $(OMPFLAGS) -I$(SRC_DIR) -c $< -o $@
 
-# Compile CUDA model (only if source exists and nvcc is available)
-ifneq ($(CUDA_AVAILABLE),)
+# Compile CUDA model
 $(CUDA_OBJ): $(CUDA_SRC)
 	@echo "Compiling $< with CUDA..."
 	$(NVCC) $(NVCCFLAGS) -I$(SRC_DIR) -c $< -o $@
-endif
 
 # Compile utilities
 $(OBJ_DIR)/load_binary.o: $(UTIL_DIR)/load_binary.c
