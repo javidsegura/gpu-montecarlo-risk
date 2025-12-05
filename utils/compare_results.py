@@ -86,9 +86,8 @@ def compare_implementations(csv_file):
         if metric in results:
             avg_opt = results[metric]['openmp_opt_avg']
             avg_openmp = results[metric]['openmp_avg']
-            speedup = avg_opt / avg_openmp
-            improvement_pct = ((avg_opt - avg_openmp) / avg_openmp) * 100
-
+            speedup = avg_opt / avg_openmp if avg_openmp != 0 else float('inf')
+            improvement_pct = ((avg_opt - avg_openmp) / avg_openmp) * 100 if avg_openmp != 0 else 0.0
             print(f"\n  {metrics[metric]}:")
             print(f"    Speedup: {speedup:.2f}x")
             print(f"    Improvement: {improvement_pct:.2f}% higher")

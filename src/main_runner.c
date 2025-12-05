@@ -271,9 +271,29 @@ int main(int argc, char **argv) {
         struct timespec start_time, end_time;
         clock_gettime(CLOCK_MONOTONIC, &start_time);
 
-        // Run model (all ranks participate for MPI models, serial/OpenMP run normally)
-        int status = model.run_model(params, &result);
+        // Determine if this is a distributed model that needs all ranks
+        int is_distributed_model = (strcmp(model_type, "mpi_openmp") == 0);
+        int status = -1;
+        
+        if (is_distributed_model) {
+            // Distributed models: all ranks participate
+            status = model.run_model(params, &result);
+        } else {
+            // Non-distributed models: only rank 0 runs, others wait
+            if (rank == 0) {
+                status = model.run_model(params, &result);
+            } else {
+                // Non-rank-0 processes skip execution but don't fail
+                status = 0;
+                // Initialize empty result for non-participating ranks
+                memset(&result, 0, sizeof(MonteCarloResult));
+                result.kernel_time_ms = -1.0;
+            }
+        }
 
+        // Synchronize all ranks before timing calculations
+        MPI_Barrier(MPI_COMM_WORLD);
+        
         // Calculate execution time in milliseconds (wall-clock time)
         clock_gettime(CLOCK_MONOTONIC, &end_time);
         long execution_time_ms = (long)((end_time.tv_sec - start_time.tv_sec) * 1000L +

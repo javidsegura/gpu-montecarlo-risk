@@ -220,7 +220,7 @@ int write_results_to_csv(const char *filepath, const SimulationResultsData *data
     int fprintf_status = fprintf(file,
             "%d,%s,%ld,%f,%.3f,%.3f,%.3f,%s,"
             "%s,%s,%.4f,%d,%d,%.4f,"
-            "%s,%lu,%d,%d,%d, "
+            "%s,%lu,%d,%d,%d,"
             "%s,%.6f,"
             "%.6f,%d,%.6f,%.6f,%.6f\n",
             // Metadata
