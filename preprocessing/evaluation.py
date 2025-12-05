@@ -7,18 +7,18 @@ def compute_metrics(test, x=0.02, k=5):
     Compute actual crash probability from test data.
 
     Args:
-        test: Test DataFrame with returns
-        x: Threshold for crash detection (default: 0.02)
-        k: Minimum number of indices that must crash (default: 5)
+        test: Test DataFrame with returns (rows=days, columns=indices)
+        x: Threshold for crash detection (default: 0.02 = 2% loss)
+        k: Minimum number of indices that must crash simultaneously in a single day (default: 5)
 
     Returns:
-        actual_freq: Actual crash probability from test data
+        actual_freq: Actual crash probability from test data (frequency of days with >= k crashes)
     """
 
-    # Compute real-world crash frequency
+    # Count how many indices crashed on each day (return < -x)
     actual_crash_days = (test < -x).sum(axis=1)
 
-    # Compute frequency of days where at least k indices crashed
+    # Compute frequency of days where at least k indices crashed simultaneously
     actual_freq = np.mean(actual_crash_days >= k)
 
     print(f"\nActual crash probability (from test data): {actual_freq:.6f}")

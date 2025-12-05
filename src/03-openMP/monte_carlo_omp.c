@@ -112,11 +112,14 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     printf("Starting OPENMP Monte Carlo simulation with M = %d trials...\n", params->M);
     printf("Parameters: N=%d, k=%d, x=%.2f%%\n", params->N, params->k, params->x * 100);
 
+    // SAACT: Log simulation start with parameters
+    fprintf(stderr, "[openmp_simulate] START_SIMULATION | actor=openmp | ctx={N=%d, k=%d, x=%.4f, M=%d, seed=%lu} | level=INFO\n", params->N, params->k, params->x, params->M, params->random_seed);
+
     // STEP 1: Allocate result arrays
     result->count = 0;
     result->S_values = (int *)calloc(params->M, sizeof(int));
     if (!result->S_values) {
-        fprintf(stderr, "Error: Failed to allocate S_values array\n");
+        fprintf(stderr, "[openmp_simulate] ALLOCATE_MEMORY | actor=openmp | ctx={M=%d, size_bytes=%zu} | level=ERROR: allocation_failed\n", params->M, params->M * sizeof(int));
         return -1;
     }
 
@@ -124,41 +127,57 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     void *model_state = NULL;
     int status = openmp_init(params, &model_state);
     if (status != 0) {
+        fprintf(stderr, "[openmp_init] INITIALIZE_MODEL | actor=openmp | ctx={N=%d} | level=ERROR: init_failed\n", params->N);
         free(result->S_values);
         return -1;
     }
 
     // STEP 3: Run M trials in PARALLEL using OpenMP
     int count = 0;
+    int allocation_error = 0;
 
     // Start timing the kernel (parallel computation)
     double kernel_start_time = omp_get_wtime();
 
     #pragma omp parallel
     {
-        // Allocate thread-local workspace ONCE per thread (major optimization)
         gsl_vector *Z = gsl_vector_alloc(params->N);
         gsl_vector *R = gsl_vector_alloc(params->N);
 
-        // Parallel loop over trials with reduction for count
-        // Use static scheduling for better cache locality and less overhead
-        #pragma omp for reduction(+:count) schedule(static)
-        for (int j = 0; j < params->M; j++) {
-            // Run trial using thread-local workspace
-            int S = 0;
-            openmp_run_trial(model_state, params, Z, R, &S);
+        if (!Z || !R) {
+            #pragma omp atomic write
+            allocation_error = 1;
+        }
 
-            result->S_values[j] = S;
+        #pragma omp barrier
 
-            // Check if this trial resulted in an extreme event
-            if (S >= params->k) {
-                count++;
+        if (!allocation_error) {
+            #pragma omp for reduction(+:count) schedule(static)
+            for (int j = 0; j < params->M; j++) {
+                // Run trial using thread local workspace
+                int S = 0;
+                openmp_run_trial(model_state, params, Z, R, &S);
+
+                result->S_values[j] = S;
+
+                if (S >= params->k) {
+                    count++;
+                }
             }
         }
 
-        // Free thread-local workspace
-        gsl_vector_free(Z);
-        gsl_vector_free(R);
+
+        if (R) gsl_vector_free(R);
+        if (Z) gsl_vector_free(Z);
+    
+    }
+
+    // Check for allocation errors after parallel region
+    if (allocation_error) {
+        fprintf(stderr, "[openmp_simulate] THREAD_ALLOCATION | actor=openmp | ctx={N=%d, M=%d} | level=ERROR: thread_local_allocation_failed\n", params->N, params->M);
+        openmp_cleanup_state(model_state);
+        free(result->S_values);
+        return -1;
     }
 
     // End timing the kernel
@@ -177,6 +196,9 @@ static int openmp_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     double margin = 1.96 * result->std_error;
     result->ci_lower = fmax(0.0, result->P_hat - margin);
     result->ci_upper = fmin(1.0, result->P_hat + margin);
+
+    // SAACT: Log simulation end with results
+    fprintf(stderr, "[openmp_simulate] END_SIMULATION | actor=openmp | ctx={M=%d, count=%d, P_hat=%.6f, ci_lower=%.6f, ci_upper=%.6f} | level=INFO\n", params->M, result->count, result->P_hat, result->ci_lower, result->ci_upper);
 
     // STEP 6: Cleanup internal state (result cleanup handled by main_runner)
     openmp_cleanup_state(model_state);

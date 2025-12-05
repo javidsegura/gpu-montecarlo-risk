@@ -1,94 +1,163 @@
-# Makefile for Monte Carlo Risk Simulation
+# Makefile for Monte Carlo Risk Analysis Project
+# Compiles serial, OpenMP, MPI+OpenMP, and CUDA implementations
 
-# Compiler and flags (use mpicc for MPI support)
+# Compiler and flags
 CC = mpicc
-CFLAGS = -Wall -O3 -march=native -g
-# macOS clang support: use -Xclang -fopenmp for clang, -fopenmp for GCC
-OMP_FLAGS = -Xclang -fopenmp
+NVCC = nvcc
+CFLAGS = -Wall -Wextra -O3 -std=c11 -DSERIAL_BUILD -DOPENMP_BUILD -DOPENMP_OPT_BUILD -DMPI_OPENMP_BUILD
+OMPFLAGS = -Xclang -fopenmp
+NVCCFLAGS = -O3 -arch=sm_60 -Xcompiler -fPIC
+CUDA_LDFLAGS = -lcudart -lcurand
+
+# Platform-specific library detection
 LIBOMP_PATH = $(shell brew --prefix libomp 2>/dev/null)
 OMP_INCLUDE = $(if $(LIBOMP_PATH),-I$(LIBOMP_PATH)/include,)
 OMP_LIBPATH = $(if $(LIBOMP_PATH),-L$(LIBOMP_PATH)/lib,)
 OMP_LIB = $(if $(LIBOMP_PATH),-lomp,)
-GSL_PATH = $(shell pkg-config --cflags-only-I gsl 2>/dev/null || echo "-I/usr/local/include -I/opt/homebrew/include")
-GSL_LIBPATH = $(shell pkg-config --libs-only-L gsl 2>/dev/null || echo "-L/usr/local/lib -L/opt/homebrew/lib")
-GSL_FLAGS = -lgsl -lgslcblas -lm
-# YAML_FLAGS will be set by environment when module is loaded
-# But we provide a fallback in case it's not set
+
+GSL_PATH = $(shell pkg-config --cflags-only-I gsl 2>/dev/null || echo "-I/opt/homebrew/include")
+GSL_LIBPATH = $(shell pkg-config --libs-only-L gsl 2>/dev/null || echo "-L/opt/homebrew/lib")
+GSL_FLAGS = -lgsl -lgslcblas
+
+YAML_INCLUDE = $(shell pkg-config --cflags yaml-0.1 2>/dev/null || echo "-I/opt/homebrew/include")
+YAML_LIBPATH = $(shell pkg-config --libs-only-L yaml-0.1 2>/dev/null || echo "-L/opt/homebrew/lib")
 YAML_FLAGS = -lyaml
-YAML_INCLUDE = $(shell if [ -n "$$EBROOTYAML" ]; then echo "-I$$EBROOTYAML/include"; else pkg-config --cflags yaml-0.1 2>/dev/null || echo "-I/usr/local/include -I/opt/homebrew/include"; fi)
-YAML_LIBPATH = $(shell if [ -n "$$EBROOTYAML" ]; then echo "-L$$EBROOTYAML/lib"; else pkg-config --libs-only-L yaml-0.1 2>/dev/null || echo "-L/usr/local/lib -L/opt/homebrew/lib"; fi)
+
+# Consolidated LDFLAGS with proper library paths
+LDFLAGS = $(GSL_LIBPATH) $(YAML_LIBPATH) $(OMP_LIBPATH) $(GSL_FLAGS) $(YAML_FLAGS) $(OMP_LIB) -lm -lpthread
 
 # Directories
 SRC_DIR = src
-BUILD_DIR = build
+UTIL_DIR = $(SRC_DIR)/utilities
 BIN_DIR = bin
+OBJ_DIR = obj
+
+# Create directories if they don't exist
+$(shell mkdir -p $(BIN_DIR) $(OBJ_DIR))
 
 # Source files
+UTIL_SRC = $(UTIL_DIR)/load_binary.c $(UTIL_DIR)/load_config.c $(UTIL_DIR)/csv_writer.c
 SERIAL_SRC = $(SRC_DIR)/02-C-serial/monte_carlo_serial.c
-OMP_SRC = $(SRC_DIR)/02-openMP/monte_carlo_omp.c
-OMP_OPT_SRC = $(SRC_DIR)/02-OptimizedOpenMP/monte_carlo_opt_omp.c
-MPI_SRC = $(SRC_DIR)/04-MPI/monte_carlo_mpi_openmp.c
+OPENMP_SRC = $(SRC_DIR)/03-openMP/monte_carlo_omp.c
+OPENMP_OPT_SRC = $(SRC_DIR)/04-OptimizedOpenMP/monte_carlo_opt_omp.c
+MPI_OPENMP_SRC = $(SRC_DIR)/05-MPI/monte_carlo_mpi_openmp.c
+CUDA_SRC = $(SRC_DIR)/06-GPU/monte_carlos_cuda.cu
 MAIN_SRC = $(SRC_DIR)/main_runner.c
-UTIL_SRC = $(SRC_DIR)/utilities/load_binary.c
-CONFIG_SRC = $(SRC_DIR)/utilities/load_config.c
-CSV_SRC = $(SRC_DIR)/utilities/csv_writer.c
 
 # Object files
-OBJS = $(BUILD_DIR)/main_runner.o $(BUILD_DIR)/monte_carlo_serial.o $(BUILD_DIR)/monte_carlo_omp.o $(BUILD_DIR)/monte_carlo_opt_omp.o $(BUILD_DIR)/monte_carlo_mpi_openmp.o $(BUILD_DIR)/load_binary.o $(BUILD_DIR)/load_config.o $(BUILD_DIR)/csv_writer.o
+UTIL_OBJ = $(OBJ_DIR)/load_binary.o $(OBJ_DIR)/load_config.o $(OBJ_DIR)/csv_writer.o
+SERIAL_OBJ = $(OBJ_DIR)/monte_carlo_serial.o
+OPENMP_OBJ = $(OBJ_DIR)/monte_carlo_omp.o
+OPENMP_OPT_OBJ = $(OBJ_DIR)/monte_carlo_opt_omp.o
+MPI_OPENMP_OBJ = $(OBJ_DIR)/monte_carlo_mpi_openmp.o
+CUDA_OBJ = $(OBJ_DIR)/monte_carlo_cuda.o
+MAIN_OBJ = $(OBJ_DIR)/main_runner.o
+
+# Check if CUDA source exists and nvcc is available
+CUDA_SRC_EXISTS = $(wildcard $(CUDA_SRC))
+NVCC_AVAILABLE = $(shell which $(NVCC) > /dev/null 2>&1 && echo yes || echo)
+CUDA_AVAILABLE = $(if $(and $(CUDA_SRC_EXISTS),$(NVCC_AVAILABLE)),yes,)
+
+# Base object files (always needed)
+BASE_OBJ = $(MAIN_OBJ) $(SERIAL_OBJ) $(OPENMP_OBJ) $(OPENMP_OPT_OBJ) $(MPI_OPENMP_OBJ) $(UTIL_OBJ)
+
+# Conditionally include CUDA object and set linker
+ifeq ($(CUDA_AVAILABLE),yes)
+    ALL_OBJ = $(BASE_OBJ) $(CUDA_OBJ)
+    LINKER = $(NVCC)
+    LINK_FLAGS = $(NVCCFLAGS) $(LDFLAGS) $(CUDA_LDFLAGS) -Xcompiler "$(OMPFLAGS)"
+else
+    ALL_OBJ = $(BASE_OBJ)
+    LINKER = $(CC)
+    LINK_FLAGS = $(LDFLAGS) $(OMPFLAGS)
+endif
 
 # Target executable
 TARGET = $(BIN_DIR)/monte_carlo
 
-# Default target: compile everything into one executable
-all: directories $(TARGET)
-		@echo "Build complete. Run with:"
-		@echo "  ./bin/monte_carlo                    (serial/openmp models)"
-		@echo "  mpirun -np 4 ./bin/monte_carlo       (mpi_openmp model)"
+# Default target
+all: $(TARGET)
+	@echo "=== Build Complete ==="
+	@echo "Target: $(TARGET)"
 
-# Create build directories
-directories:
-		@mkdir -p $(BUILD_DIR) $(BIN_DIR)
+# Link main executable
+$(TARGET): $(ALL_OBJ)
+	@echo "Linking $@..."
+	$(LINKER) -o $@ $^ $(LINK_FLAGS)
+	@echo "Build complete: $@"
 
-# Compile object files
-$(BUILD_DIR)/monte_carlo_serial.o: $(SERIAL_SRC)
-		$(CC) $(CFLAGS) $(GSL_PATH) -c $< -o $@
+# Compile main runner
+$(MAIN_OBJ): $(MAIN_SRC)
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) $(OMPFLAGS) $(OMP_INCLUDE) $(GSL_PATH) $(YAML_INCLUDE) -I$(SRC_DIR) -c $< -o $@
 
-$(BUILD_DIR)/monte_carlo_omp.o: $(OMP_SRC)
-		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -c $< -o $@
+# Compile serial model
+$(SERIAL_OBJ): $(SERIAL_SRC)
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
 
-$(BUILD_DIR)/monte_carlo_opt_omp.o: $(OMP_OPT_SRC)
-		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -c $< -o $@
+# Compile OpenMP model
+$(OPENMP_OBJ): $(OPENMP_SRC)
+	@echo "Compiling $< with OpenMP..."
+	$(CC) $(CFLAGS) $(OMPFLAGS) $(OMP_INCLUDE) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
 
-$(BUILD_DIR)/monte_carlo_mpi_openmp.o: $(MPI_SRC)
-		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -c $< -o $@
+# Compile optimized OpenMP model
+$(OPENMP_OPT_OBJ): $(OPENMP_OPT_SRC)
+	@echo "Compiling $< with Optimized OpenMP..."
+	$(CC) $(CFLAGS) $(OMPFLAGS) $(OMP_INCLUDE) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
 
-$(BUILD_DIR)/main_runner.o: $(MAIN_SRC)
-		$(CC) $(CFLAGS) $(OMP_FLAGS) $(OMP_INCLUDE) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
+# Compile MPI + OpenMP model
+$(MPI_OPENMP_OBJ): $(MPI_OPENMP_SRC)
+	@echo "Compiling $< with MPI+OpenMP..."
+	$(CC) $(CFLAGS) $(OMPFLAGS) $(OMP_INCLUDE) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
 
-$(BUILD_DIR)/load_binary.o: $(UTIL_SRC)
-		$(CC) $(CFLAGS) $(GSL_PATH) -c $< -o $@
+# Compile CUDA model (conditional)
+ifeq ($(CUDA_AVAILABLE),yes)
+$(CUDA_OBJ): $(CUDA_SRC)
+	@echo "Compiling $< with CUDA..."
+	$(NVCC) $(NVCCFLAGS) -I$(SRC_DIR) -c $< -o $@
+endif
 
-$(BUILD_DIR)/load_config.o: $(CONFIG_SRC)
-		$(CC) $(CFLAGS) $(YAML_INCLUDE) -c $< -o $@
+# Compile utilities
+$(OBJ_DIR)/load_binary.o: $(UTIL_DIR)/load_binary.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
 
-$(BUILD_DIR)/csv_writer.o: $(CSV_SRC)
-		$(CC) $(CFLAGS) -c $< -o $@
+$(OBJ_DIR)/load_config.o: $(UTIL_DIR)/load_config.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) $(YAML_INCLUDE) -I$(SRC_DIR) -c $< -o $@
 
-# Link everything into single executable
-$(TARGET): $(OBJS)
-		$(CC) $(CFLAGS) $(LDFLAGS) $(OMP_FLAGS) $^ -o $@ $(OMP_LIBPATH) $(GSL_LIBPATH) $(YAML_LIBPATH) $(GSL_FLAGS) $(OMP_LIB) $(YAML_FLAGS)
+$(OBJ_DIR)/csv_writer.o: $(UTIL_DIR)/csv_writer.c
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -I$(SRC_DIR) -c $< -o $@
+
+# Profiling build with gprof
+profile: CFLAGS += -pg
+profile: LDFLAGS += -pg
+profile: clean $(TARGET)
+	@echo "Profiling build complete. Run ./bin/monte_carlo to generate gmon.out"
 
 # Clean build artifacts
 clean:
-		rm -rf $(BUILD_DIR) $(BIN_DIR)
-
-# Profiling build with gprof (-pg)
-profile: CFLAGS += -pg
-profile: LDFLAGS += -pg
-profile: clean directories $(TARGET)
-		@echo "Profiling build complete. Run ./bin/monte_carlo to generate gmon.out"
+	@echo "Cleaning build artifacts..."
+	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	@echo "Clean complete"
 
 # Clean and rebuild
 rebuild: clean all
 
-.PHONY: all clean rebuild directories profile
+# Display build information
+info:
+	@echo "=== Build Configuration ==="
+	@echo "C Compiler: $(CC)"
+	@echo "CUDA Compiler: $(NVCC) ($(if $(CUDA_AVAILABLE),available,not available))"
+	@echo "CFLAGS: $(CFLAGS)"
+	@echo "OpenMP: $(OMPFLAGS)"
+	@echo "NVCCFLAGS: $(NVCCFLAGS)"
+	@echo "Libraries: $(LDFLAGS)"
+	@echo "Target: $(TARGET)"
+	@echo "Objects: $(ALL_OBJ)"
+	@echo "=========================="
+
+# Phony targets
+.PHONY: all clean rebuild profile info

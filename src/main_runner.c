@@ -1,6 +1,7 @@
 // Main entry point for running Monte Carlo simulations with different implementations
 // Supports: Serial, OpenMP, MPI+OpenMP, CUDA (future)
 
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,11 +13,25 @@
 #include "utilities/csv_writer.h"
 #include <math.h> //for NaN
 
+#ifdef SERIAL_BUILD
 extern ModelFunctions get_serial_model(void);
+#endif
+
+#ifdef OPENMP_BUILD
 extern ModelFunctions get_openmp_model(void);
+#endif
+
+#ifdef OPENMP_OPT_BUILD
 extern ModelFunctions get_openmp_opt_model(void);
+#endif
+
+#ifdef MPI_OPENMP_BUILD
 extern ModelFunctions get_mpi_openmp_model(void);
-// extern ModelFunctions get_cuda_model(void);
+#endif
+
+#ifdef CUDA_BUILD
+extern ModelFunctions get_cuda_model(void);
+#endif
 
 // Print final results
 void print_results(const char *model_name, MonteCarloResult *result, int M) {
@@ -207,16 +222,44 @@ int main(int argc, char **argv) {
 
         // Select model based on type
         if (strcmp(model_type, "serial") == 0) {
+#ifdef SERIAL_BUILD
             model = get_serial_model();
+#else
+            fprintf(stderr, "Error: Serial model not available in this build\n");
+            continue;
+#endif
         }
         else if (strcmp(model_type, "openmp") == 0) {
+#ifdef OPENMP_BUILD
             model = get_openmp_model();
+#else
+            fprintf(stderr, "Error: OpenMP model not available in this build\n");
+            continue;
+#endif
         }
-        else if (strcmp(model_type, "openmp_opt") == 0) {
+        else if(strcmp(model_type, "openmp_opt") == 0) {
+#ifdef OPENMP_OPT_BUILD
             model = get_openmp_opt_model();
-        }
+#else
+            fprintf(stderr, "Error: OpenMP Optimized model not available in this build\n");
+            continue;
+#endif 
+        }           
         else if (strcmp(model_type, "mpi_openmp") == 0) {
+#ifdef MPI_OPENMP_BUILD
             model = get_mpi_openmp_model();
+#else
+            fprintf(stderr, "Error: MPI model not available in this build\n");
+            continue;
+#endif
+        }
+        else if (strcmp(model_type, "cuda") == 0 || strcmp(model_type, "gpu") == 0) {
+#ifdef CUDA_BUILD
+            model = get_cuda_model();
+#else
+            fprintf(stderr, "Error: CUDA model not available in this build\n");
+            continue;
+#endif
         }
         else {
             if (rank == 0) {
@@ -225,30 +268,17 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        // Record start time
-        clock_t start_time = clock();
-
-        // ADD?
-        
-        // int all_ranks_needed = (strcmp(model_type, "mpi_openmp") == 0);
-
-        // int status = 0;
-        // if (all_ranks_needed || rank == 0) {
-        //     status = model.run_model(params, &result);
-        // } else {
-        //     status = 0;
-        // }
-
-        // Synchronize all ranks after running the model
-        // MPI_Barrier(MPI_COMM_WORLD);
-    
+        // Record start time (wall-clock time for accurate GPU timing)
+        struct timespec start_time, end_time;
+        clock_gettime(CLOCK_MONOTONIC, &start_time);
 
         // Run model (all ranks participate for MPI models, serial/OpenMP run normally)
         int status = model.run_model(params, &result);
 
-        // Calculate execution time in milliseconds
-        clock_t end_time = clock();
-        long execution_time_ms = (long)((end_time - start_time) * 1000 / CLOCKS_PER_SEC);
+        // Calculate execution time in milliseconds (wall-clock time)
+        clock_gettime(CLOCK_MONOTONIC, &end_time);
+        long execution_time_ms = (long)((end_time.tv_sec - start_time.tv_sec) * 1000L +
+                                        (end_time.tv_nsec - start_time.tv_nsec) / 1000000L);
 
         // Get throughput in seconds
         int throughput = (int)round((double)M * 1000.0 / (double)execution_time_ms);
