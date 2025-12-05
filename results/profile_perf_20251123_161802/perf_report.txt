@@ -1,0 +1,1059 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 591  of event 'cpu-clock:u'
+# Event count (approx.): 147750000
+#
+# Children      Self  Command      Shared Object            Symbol                       
+# ........  ........  ...........  .......................  .............................
+#
+    98.14%     1.52%  monte_carlo  monte_carlo              [.] openmp_simulate._omp_fn.0
+            |          
+            |--96.62%--openmp_simulate._omp_fn.0
+            |          |          
+            |          |--95.26%--openmp_run_trial (inlined)
+            |          |          |          
+            |          |          |--38.41%--gsl_ran_gaussian
+            |          |          |          |          
+            |          |          |          |--14.04%--mt_get_double
+            |          |          |          |          |          
+            |          |          |          |           --10.83%--mt_get
+            |          |          |          |          
+            |          |          |          |--0.85%--0x14a270cb1583
+            |          |          |          |          
+            |          |          |          |--0.68%--0x14a270cb15a7
+            |          |          |          |          
+            |          |          |          |--0.68%--0x14a270cb15a3
+            |          |          |          |          
+            |          |          |          |--0.68%--0x14a270cb156a
+            |          |          |          |          
+            |          |          |          |--0.68%--0x14a270cb1550
+            |          |          |          |          
+            |          |          |          |--0.68%--log
+            |          |          |          |          
+            |          |          |          |--0.51%--0x14a270cb1576
+            |          |          |          |          
+            |          |          |          |--0.51%--0x14a270cb155b
+            |          |          |          |          
+            |          |          |           --0.51%--0x14a270cb1500
+            |          |          |          
+            |          |          |--10.83%--0x14a270bf5a86
+            |          |          |          
+            |          |          |--9.31%--0x14a270bf5a8d
+            |          |          |          
+            |          |          |--9.14%--gsl_blas_dgemv
+            |          |          |          |          
+            |          |          |           --8.97%--cblas_dgemv
+            |          |          |          
+            |          |          |--8.29%--0x14a270bf5a82
+            |          |          |          
+            |          |          |--5.25%--GOMP_critical_start
+            |          |          |          
+            |          |          |--4.57%--0x14a270bf5a8b
+            |          |          |          
+            |          |          |--2.88%--0x14a270bf5a9d
+            |          |          |          
+            |          |          |--2.54%--GOMP_critical_end
+            |          |          |          
+            |          |          |--1.69%--0x14a270bf5a80
+            |          |          |          
+            |          |          |--0.68%--gsl_vector_get
+            |          |          |          
+            |          |           --0.51%--gsl_vector_set@plt
+            |          |          
+            |          |--0.68%--0x14a270bf6326
+            |          |          
+            |           --0.51%--0x14a270bf6322
+            |          
+            |--0.85%--0x14a270b0209b
+            |          0x14a270a81a9c
+            |          0x14a270bf343f
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          
+             --0.68%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       |          
+                        --0.51%--openmp_run_trial (inlined)
+
+    96.62%     0.00%  monte_carlo  monte_carlo              [.] openmp_run_trial (inlined)
+            |
+            ---openmp_run_trial (inlined)
+               |          
+               |--38.41%--gsl_ran_gaussian
+               |          |          
+               |          |--14.04%--mt_get_double
+               |          |          |          
+               |          |           --10.83%--mt_get
+               |          |          
+               |          |--0.85%--0x14a270cb1583
+               |          |          
+               |          |--0.68%--0x14a270cb15a7
+               |          |          
+               |          |--0.68%--0x14a270cb15a3
+               |          |          
+               |          |--0.68%--0x14a270cb156a
+               |          |          
+               |          |--0.68%--0x14a270cb1550
+               |          |          
+               |          |--0.68%--log
+               |          |          
+               |          |--0.51%--0x14a270cb1576
+               |          |          
+               |          |--0.51%--0x14a270cb155b
+               |          |          
+               |           --0.51%--0x14a270cb1500
+               |          
+               |--10.83%--0x14a270bf5a86
+               |          
+               |--9.31%--0x14a270bf5a8d
+               |          
+               |--9.14%--gsl_blas_dgemv
+               |          |          
+               |           --8.97%--cblas_dgemv
+               |          
+               |--8.29%--0x14a270bf5a82
+               |          
+               |--5.25%--GOMP_critical_start
+               |          
+               |--4.57%--0x14a270bf5a8b
+               |          
+               |--2.88%--0x14a270bf5a9d
+               |          
+               |--2.54%--GOMP_critical_end
+               |          
+               |--1.69%--0x14a270bf5a80
+               |          
+               |--0.68%--gsl_vector_get
+               |          
+                --0.51%--gsl_vector_set@plt
+
+    51.10%     0.00%  monte_carlo  libc.so.6                [.] 0x000014a270b0209b
+            |
+            ---0x14a270b0209b
+               0x14a270a81a9c
+               |          
+               |--49.75%--0x14a270bf343f
+               |          openmp_simulate._omp_fn.0
+               |          |          
+               |          |--48.39%--openmp_run_trial (inlined)
+               |          |          |          
+               |          |          |--17.77%--gsl_ran_gaussian
+               |          |          |          |          
+               |          |          |          |--6.77%--mt_get_double
+               |          |          |          |          |          
+               |          |          |          |           --5.41%--mt_get
+               |          |          |          |          
+               |          |          |          |--0.51%--0x14a270cb1583
+               |          |          |          |          
+               |          |          |          |--0.51%--0x14a270cb1500
+               |          |          |          |          
+               |          |          |           --0.51%--log
+               |          |          |          
+               |          |          |--5.92%--0x14a270bf5a86
+               |          |          |          
+               |          |          |--5.25%--gsl_blas_dgemv
+               |          |          |          |          
+               |          |          |           --5.08%--cblas_dgemv
+               |          |          |          
+               |          |          |--4.74%--0x14a270bf5a8d
+               |          |          |          
+               |          |          |--3.72%--0x14a270bf5a82
+               |          |          |          
+               |          |          |--2.88%--GOMP_critical_start
+               |          |          |          
+               |          |          |--2.54%--0x14a270bf5a8b
+               |          |          |          
+               |          |          |--1.69%--GOMP_critical_end
+               |          |          |          
+               |          |          |--1.02%--0x14a270bf5a9d
+               |          |          |          
+               |          |          |--0.85%--0x14a270bf5a80
+               |          |          |          
+               |          |           --0.68%--gsl_vector_get
+               |          |          
+               |          |--0.68%--0x14a270bf6326
+               |          |          
+               |           --0.51%--0x14a270bf6322
+               |          
+                --1.35%--0x14a270bf3419
+                          |          
+                          |--0.51%--0x14a270bf618d
+                          |          
+                           --0.51%--0x14a270bf6186
+
+    51.10%     0.00%  monte_carlo  libc.so.6                [.] 0x000014a270a81a9c
+            |
+            ---0x14a270a81a9c
+               |          
+               |--49.75%--0x14a270bf343f
+               |          openmp_simulate._omp_fn.0
+               |          |          
+               |          |--48.39%--openmp_run_trial (inlined)
+               |          |          |          
+               |          |          |--17.77%--gsl_ran_gaussian
+               |          |          |          |          
+               |          |          |          |--6.77%--mt_get_double
+               |          |          |          |          |          
+               |          |          |          |           --5.41%--mt_get
+               |          |          |          |          
+               |          |          |          |--0.51%--0x14a270cb1583
+               |          |          |          |          
+               |          |          |          |--0.51%--0x14a270cb1500
+               |          |          |          |          
+               |          |          |           --0.51%--log
+               |          |          |          
+               |          |          |--5.92%--0x14a270bf5a86
+               |          |          |          
+               |          |          |--5.25%--gsl_blas_dgemv
+               |          |          |          |          
+               |          |          |           --5.08%--cblas_dgemv
+               |          |          |          
+               |          |          |--4.74%--0x14a270bf5a8d
+               |          |          |          
+               |          |          |--3.72%--0x14a270bf5a82
+               |          |          |          
+               |          |          |--2.88%--GOMP_critical_start
+               |          |          |          
+               |          |          |--2.54%--0x14a270bf5a8b
+               |          |          |          
+               |          |          |--1.69%--GOMP_critical_end
+               |          |          |          
+               |          |          |--1.02%--0x14a270bf5a9d
+               |          |          |          
+               |          |          |--0.85%--0x14a270bf5a80
+               |          |          |          
+               |          |           --0.68%--gsl_vector_get
+               |          |          
+               |          |--0.68%--0x14a270bf6326
+               |          |          
+               |           --0.51%--0x14a270bf6322
+               |          
+                --1.35%--0x14a270bf3419
+                          |          
+                          |--0.51%--0x14a270bf618d
+                          |          
+                           --0.51%--0x14a270bf6186
+
+    49.75%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf343f
+            |
+            ---0x14a270bf343f
+               openmp_simulate._omp_fn.0
+               |          
+               |--48.39%--openmp_run_trial (inlined)
+               |          |          
+               |          |--17.77%--gsl_ran_gaussian
+               |          |          |          
+               |          |          |--6.77%--mt_get_double
+               |          |          |          |          
+               |          |          |           --5.41%--mt_get
+               |          |          |          
+               |          |          |--0.51%--0x14a270cb1583
+               |          |          |          
+               |          |          |--0.51%--0x14a270cb1500
+               |          |          |          
+               |          |           --0.51%--log
+               |          |          
+               |          |--5.92%--0x14a270bf5a86
+               |          |          
+               |          |--5.25%--gsl_blas_dgemv
+               |          |          |          
+               |          |           --5.08%--cblas_dgemv
+               |          |          
+               |          |--4.74%--0x14a270bf5a8d
+               |          |          
+               |          |--3.72%--0x14a270bf5a82
+               |          |          
+               |          |--2.88%--GOMP_critical_start
+               |          |          
+               |          |--2.54%--0x14a270bf5a8b
+               |          |          
+               |          |--1.69%--GOMP_critical_end
+               |          |          
+               |          |--1.02%--0x14a270bf5a9d
+               |          |          
+               |          |--0.85%--0x14a270bf5a80
+               |          |          
+               |           --0.68%--gsl_vector_get
+               |          
+               |--0.68%--0x14a270bf6326
+               |          
+                --0.51%--0x14a270bf6322
+
+    48.56%     0.00%  monte_carlo  monte_carlo              [.] _start
+            |
+            ---_start
+               __libc_start_main
+               0x14a270a20949
+               main
+               openmp_simulate
+               |          
+                --48.39%--GOMP_parallel
+                          openmp_simulate._omp_fn.0
+                          |          
+                           --48.22%--openmp_run_trial (inlined)
+                                     |          
+                                     |--20.64%--gsl_ran_gaussian
+                                     |          |          
+                                     |          |--7.28%--mt_get_double
+                                     |          |          |          
+                                     |          |           --5.41%--mt_get
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb15a3
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb156a
+                                     |          |          
+                                     |           --0.51%--0x14a270cb1550
+                                     |          
+                                     |--4.91%--0x14a270bf5a86
+                                     |          
+                                     |--4.57%--0x14a270bf5a8d
+                                     |          
+                                     |--4.57%--0x14a270bf5a82
+                                     |          
+                                     |--3.89%--gsl_blas_dgemv
+                                     |          cblas_dgemv
+                                     |          
+                                     |--2.37%--GOMP_critical_start
+                                     |          
+                                     |--2.03%--0x14a270bf5a8b
+                                     |          
+                                     |--1.86%--0x14a270bf5a9d
+                                     |          
+                                     |--0.85%--0x14a270bf5a80
+                                     |          
+                                      --0.85%--GOMP_critical_end
+
+    48.56%     0.00%  monte_carlo  libc.so.6                [.] __libc_start_main
+            |
+            ---__libc_start_main
+               0x14a270a20949
+               main
+               openmp_simulate
+               |          
+                --48.39%--GOMP_parallel
+                          openmp_simulate._omp_fn.0
+                          |          
+                           --48.22%--openmp_run_trial (inlined)
+                                     |          
+                                     |--20.64%--gsl_ran_gaussian
+                                     |          |          
+                                     |          |--7.28%--mt_get_double
+                                     |          |          |          
+                                     |          |           --5.41%--mt_get
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb15a3
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb156a
+                                     |          |          
+                                     |           --0.51%--0x14a270cb1550
+                                     |          
+                                     |--4.91%--0x14a270bf5a86
+                                     |          
+                                     |--4.57%--0x14a270bf5a8d
+                                     |          
+                                     |--4.57%--0x14a270bf5a82
+                                     |          
+                                     |--3.89%--gsl_blas_dgemv
+                                     |          cblas_dgemv
+                                     |          
+                                     |--2.37%--GOMP_critical_start
+                                     |          
+                                     |--2.03%--0x14a270bf5a8b
+                                     |          
+                                     |--1.86%--0x14a270bf5a9d
+                                     |          
+                                     |--0.85%--0x14a270bf5a80
+                                     |          
+                                      --0.85%--GOMP_critical_end
+
+    48.56%     0.00%  monte_carlo  libc.so.6                [.] 0x000014a270a20949
+            |
+            ---0x14a270a20949
+               main
+               openmp_simulate
+               |          
+                --48.39%--GOMP_parallel
+                          openmp_simulate._omp_fn.0
+                          |          
+                           --48.22%--openmp_run_trial (inlined)
+                                     |          
+                                     |--20.64%--gsl_ran_gaussian
+                                     |          |          
+                                     |          |--7.28%--mt_get_double
+                                     |          |          |          
+                                     |          |           --5.41%--mt_get
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb15a3
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb156a
+                                     |          |          
+                                     |           --0.51%--0x14a270cb1550
+                                     |          
+                                     |--4.91%--0x14a270bf5a86
+                                     |          
+                                     |--4.57%--0x14a270bf5a8d
+                                     |          
+                                     |--4.57%--0x14a270bf5a82
+                                     |          
+                                     |--3.89%--gsl_blas_dgemv
+                                     |          cblas_dgemv
+                                     |          
+                                     |--2.37%--GOMP_critical_start
+                                     |          
+                                     |--2.03%--0x14a270bf5a8b
+                                     |          
+                                     |--1.86%--0x14a270bf5a9d
+                                     |          
+                                     |--0.85%--0x14a270bf5a80
+                                     |          
+                                      --0.85%--GOMP_critical_end
+
+    48.56%     0.00%  monte_carlo  monte_carlo              [.] main
+            |
+            ---main
+               openmp_simulate
+               |          
+                --48.39%--GOMP_parallel
+                          openmp_simulate._omp_fn.0
+                          |          
+                           --48.22%--openmp_run_trial (inlined)
+                                     |          
+                                     |--20.64%--gsl_ran_gaussian
+                                     |          |          
+                                     |          |--7.28%--mt_get_double
+                                     |          |          |          
+                                     |          |           --5.41%--mt_get
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb15a3
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb156a
+                                     |          |          
+                                     |           --0.51%--0x14a270cb1550
+                                     |          
+                                     |--4.91%--0x14a270bf5a86
+                                     |          
+                                     |--4.57%--0x14a270bf5a8d
+                                     |          
+                                     |--4.57%--0x14a270bf5a82
+                                     |          
+                                     |--3.89%--gsl_blas_dgemv
+                                     |          cblas_dgemv
+                                     |          
+                                     |--2.37%--GOMP_critical_start
+                                     |          
+                                     |--2.03%--0x14a270bf5a8b
+                                     |          
+                                     |--1.86%--0x14a270bf5a9d
+                                     |          
+                                     |--0.85%--0x14a270bf5a80
+                                     |          
+                                      --0.85%--GOMP_critical_end
+
+    48.56%     0.00%  monte_carlo  monte_carlo              [.] openmp_simulate
+            |
+            ---openmp_simulate
+               |          
+                --48.39%--GOMP_parallel
+                          openmp_simulate._omp_fn.0
+                          |          
+                           --48.22%--openmp_run_trial (inlined)
+                                     |          
+                                     |--20.64%--gsl_ran_gaussian
+                                     |          |          
+                                     |          |--7.28%--mt_get_double
+                                     |          |          |          
+                                     |          |           --5.41%--mt_get
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb15a3
+                                     |          |          
+                                     |          |--0.51%--0x14a270cb156a
+                                     |          |          
+                                     |           --0.51%--0x14a270cb1550
+                                     |          
+                                     |--4.91%--0x14a270bf5a86
+                                     |          
+                                     |--4.57%--0x14a270bf5a8d
+                                     |          
+                                     |--4.57%--0x14a270bf5a82
+                                     |          
+                                     |--3.89%--gsl_blas_dgemv
+                                     |          cblas_dgemv
+                                     |          
+                                     |--2.37%--GOMP_critical_start
+                                     |          
+                                     |--2.03%--0x14a270bf5a8b
+                                     |          
+                                     |--1.86%--0x14a270bf5a9d
+                                     |          
+                                     |--0.85%--0x14a270bf5a80
+                                     |          
+                                      --0.85%--GOMP_critical_end
+
+    48.39%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] GOMP_parallel
+            |
+            ---GOMP_parallel
+               openmp_simulate._omp_fn.0
+               |          
+                --48.22%--openmp_run_trial (inlined)
+                          |          
+                          |--20.64%--gsl_ran_gaussian
+                          |          |          
+                          |          |--7.28%--mt_get_double
+                          |          |          |          
+                          |          |           --5.41%--mt_get
+                          |          |          
+                          |          |--0.51%--0x14a270cb15a3
+                          |          |          
+                          |          |--0.51%--0x14a270cb156a
+                          |          |          
+                          |           --0.51%--0x14a270cb1550
+                          |          
+                          |--4.91%--0x14a270bf5a86
+                          |          
+                          |--4.57%--0x14a270bf5a8d
+                          |          
+                          |--4.57%--0x14a270bf5a82
+                          |          
+                          |--3.89%--gsl_blas_dgemv
+                          |          cblas_dgemv
+                          |          
+                          |--2.37%--GOMP_critical_start
+                          |          
+                          |--2.03%--0x14a270bf5a8b
+                          |          
+                          |--1.86%--0x14a270bf5a9d
+                          |          
+                          |--0.85%--0x14a270bf5a80
+                          |          
+                           --0.85%--GOMP_critical_end
+
+    38.41%    15.57%  monte_carlo  libgsl.so.25.1.0         [.] gsl_ran_gaussian
+            |          
+            |--22.84%--gsl_ran_gaussian
+            |          |          
+            |          |--14.04%--mt_get_double
+            |          |          |          
+            |          |           --10.83%--mt_get
+            |          |          
+            |          |--0.85%--0x14a270cb1583
+            |          |          
+            |          |--0.68%--0x14a270cb15a7
+            |          |          
+            |          |--0.68%--0x14a270cb15a3
+            |          |          
+            |          |--0.68%--0x14a270cb156a
+            |          |          
+            |          |--0.68%--0x14a270cb1550
+            |          |          
+            |          |--0.68%--log
+            |          |          
+            |          |--0.51%--0x14a270cb1576
+            |          |          
+            |          |--0.51%--0x14a270cb155b
+            |          |          
+            |           --0.51%--0x14a270cb1500
+            |          
+            |--8.46%--_start
+            |          __libc_start_main
+            |          0x14a270a20949
+            |          main
+            |          openmp_simulate
+            |          GOMP_parallel
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          gsl_ran_gaussian
+            |          
+             --7.11%--0x14a270b0209b
+                       0x14a270a81a9c
+                       0x14a270bf343f
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+
+    14.04%     3.21%  monte_carlo  libgsl.so.25.1.0         [.] mt_get_double
+            |          
+            |--10.83%--mt_get_double
+            |          mt_get
+            |          
+            |--1.86%--_start
+            |          __libc_start_main
+            |          0x14a270a20949
+            |          main
+            |          openmp_simulate
+            |          GOMP_parallel
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          gsl_ran_gaussian
+            |          mt_get_double
+            |          
+             --1.35%--0x14a270b0209b
+                       0x14a270a81a9c
+                       0x14a270bf343f
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       mt_get_double
+
+    10.83%    10.83%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000023a86
+            |          
+            |--5.92%--0x14a270b0209b
+            |          0x14a270a81a9c
+            |          0x14a270bf343f
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          0x14a270bf5a86
+            |          
+             --4.91%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       0x14a270bf5a86
+
+    10.83%    10.83%  monte_carlo  libgsl.so.25.1.0         [.] mt_get
+            |          
+            |--5.41%--0x14a270b0209b
+            |          0x14a270a81a9c
+            |          0x14a270bf343f
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          gsl_ran_gaussian
+            |          mt_get_double
+            |          mt_get
+            |          
+             --5.41%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       mt_get_double
+                       mt_get
+
+    10.83%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf5a86
+            |
+            ---0x14a270bf5a86
+
+     9.31%     9.31%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000023a8d
+            |          
+            |--4.74%--0x14a270b0209b
+            |          0x14a270a81a9c
+            |          0x14a270bf343f
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          0x14a270bf5a8d
+            |          
+             --4.57%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       0x14a270bf5a8d
+
+     9.31%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf5a8d
+            |
+            ---0x14a270bf5a8d
+
+     9.14%     0.17%  monte_carlo  libgsl.so.25.1.0         [.] gsl_blas_dgemv
+            |          
+             --8.97%--gsl_blas_dgemv
+                       cblas_dgemv
+
+     8.97%     8.97%  monte_carlo  libgslcblas.so.0.0.0     [.] cblas_dgemv
+            |          
+            |--5.08%--0x14a270b0209b
+            |          0x14a270a81a9c
+            |          0x14a270bf343f
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          gsl_blas_dgemv
+            |          cblas_dgemv
+            |          
+             --3.89%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_blas_dgemv
+                       cblas_dgemv
+
+     8.29%     8.29%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000023a82
+            |          
+            |--4.57%--_start
+            |          __libc_start_main
+            |          0x14a270a20949
+            |          main
+            |          openmp_simulate
+            |          GOMP_parallel
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          0x14a270bf5a82
+            |          
+             --3.72%--0x14a270b0209b
+                       0x14a270a81a9c
+                       0x14a270bf343f
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       0x14a270bf5a82
+
+     8.29%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf5a82
+            |
+            ---0x14a270bf5a82
+
+     5.25%     5.25%  monte_carlo  libgomp.so.1.0.0         [.] GOMP_critical_start
+            |          
+            |--2.88%--0x14a270b0209b
+            |          0x14a270a81a9c
+            |          0x14a270bf343f
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          GOMP_critical_start
+            |          
+             --2.37%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       GOMP_critical_start
+
+     4.57%     4.57%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000023a8b
+            |          
+            |--2.54%--0x14a270b0209b
+            |          0x14a270a81a9c
+            |          0x14a270bf343f
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          0x14a270bf5a8b
+            |          
+             --2.03%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       0x14a270bf5a8b
+
+     4.57%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf5a8b
+            |
+            ---0x14a270bf5a8b
+
+     2.88%     2.88%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000023a9d
+            |          
+            |--1.86%--_start
+            |          __libc_start_main
+            |          0x14a270a20949
+            |          main
+            |          openmp_simulate
+            |          GOMP_parallel
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          0x14a270bf5a9d
+            |          
+             --1.02%--0x14a270b0209b
+                       0x14a270a81a9c
+                       0x14a270bf343f
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       0x14a270bf5a9d
+
+     2.88%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf5a9d
+            |
+            ---0x14a270bf5a9d
+
+     2.54%     2.54%  monte_carlo  libgomp.so.1.0.0         [.] GOMP_critical_end
+            |          
+            |--1.69%--0x14a270b0209b
+            |          0x14a270a81a9c
+            |          0x14a270bf343f
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          GOMP_critical_end
+            |          
+             --0.85%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       GOMP_critical_end
+
+     1.69%     1.69%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000023a80
+            |          
+            |--0.85%--0x14a270b0209b
+            |          0x14a270a81a9c
+            |          0x14a270bf343f
+            |          openmp_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          0x14a270bf5a80
+            |          
+             --0.85%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       0x14a270bf5a80
+
+     1.69%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf5a80
+            |
+            ---0x14a270bf5a80
+
+     1.35%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf3419
+            |
+            ---0x14a270bf3419
+               |          
+               |--0.51%--0x14a270bf618d
+               |          
+                --0.51%--0x14a270bf6186
+
+     0.85%     0.85%  monte_carlo  libm.so.6                [.] 0x0000000000068583
+            |          
+             --0.51%--0x14a270b0209b
+                       0x14a270a81a9c
+                       0x14a270bf343f
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       0x14a270cb1583
+
+     0.85%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb1583
+            |
+            ---0x14a270cb1583
+
+     0.68%     0.68%  monte_carlo  libm.so.6                [.] 0x000000000006856a
+            |          
+             --0.51%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       0x14a270cb156a
+
+     0.68%     0.68%  monte_carlo  libm.so.6                [.] 0x00000000000685a7
+     0.68%     0.68%  monte_carlo  libgsl.so.25.1.0         [.] gsl_vector_get
+            |
+            ---0x14a270b0209b
+               0x14a270a81a9c
+               0x14a270bf343f
+               openmp_simulate._omp_fn.0
+               openmp_run_trial (inlined)
+               gsl_vector_get
+
+     0.68%     0.68%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000024326
+            |
+            ---0x14a270b0209b
+               0x14a270a81a9c
+               0x14a270bf343f
+               openmp_simulate._omp_fn.0
+               0x14a270bf6326
+
+     0.68%     0.68%  monte_carlo  libm.so.6                [.] log
+            |          
+             --0.51%--0x14a270b0209b
+                       0x14a270a81a9c
+                       0x14a270bf343f
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       log
+
+     0.68%     0.68%  monte_carlo  libm.so.6                [.] 0x0000000000068550
+            |          
+             --0.51%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       0x14a270cb1550
+
+     0.68%     0.68%  monte_carlo  libm.so.6                [.] 0x00000000000685a3
+            |          
+             --0.51%--_start
+                       __libc_start_main
+                       0x14a270a20949
+                       main
+                       openmp_simulate
+                       GOMP_parallel
+                       openmp_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       0x14a270cb15a3
+
+     0.68%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf6326
+            |
+            ---0x14a270bf6326
+
+     0.68%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb1550
+            |
+            ---0x14a270cb1550
+
+     0.68%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb156a
+            |
+            ---0x14a270cb156a
+
+     0.68%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb15a3
+            |
+            ---0x14a270cb15a3
+
+     0.68%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb15a7
+            |
+            ---0x14a270cb15a7
+
+     0.51%     0.51%  monte_carlo  monte_carlo              [.] gsl_vector_set@plt
+     0.51%     0.51%  monte_carlo  libm.so.6                [.] 0x0000000000068500
+            |
+            ---0x14a270b0209b
+               0x14a270a81a9c
+               0x14a270bf343f
+               openmp_simulate._omp_fn.0
+               openmp_run_trial (inlined)
+               gsl_ran_gaussian
+               0x14a270cb1500
+
+     0.51%     0.51%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000024322
+            |
+            ---0x14a270b0209b
+               0x14a270a81a9c
+               0x14a270bf343f
+               openmp_simulate._omp_fn.0
+               0x14a270bf6322
+
+     0.51%     0.51%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000024186
+            |
+            ---0x14a270b0209b
+               0x14a270a81a9c
+               0x14a270bf3419
+               0x14a270bf6186
+
+     0.51%     0.51%  monte_carlo  libgomp.so.1.0.0         [.] 0x000000000002418d
+            |
+            ---0x14a270b0209b
+               0x14a270a81a9c
+               0x14a270bf3419
+               0x14a270bf618d
+
+     0.51%     0.51%  monte_carlo  libm.so.6                [.] 0x000000000006855b
+     0.51%     0.51%  monte_carlo  libm.so.6                [.] 0x0000000000068576
+     0.51%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf6186
+            |
+            ---0x14a270bf6186
+
+     0.51%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf618d
+            |
+            ---0x14a270bf618d
+
+     0.51%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf6322
+            |
+            ---0x14a270bf6322
+
+     0.51%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb1500
+            |
+            ---0x14a270cb1500
+
+     0.51%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb155b
+            |
+            ---0x14a270cb155b
+
+     0.51%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb1576
+            |
+            ---0x14a270cb1576
+
+     0.34%     0.34%  monte_carlo  libm.so.6                [.] __log_finite@plt
+     0.34%     0.34%  monte_carlo  libm.so.6                [.] 0x000000000006851b
+     0.34%     0.34%  monte_carlo  libm.so.6                [.] 0x0000000000068599
+     0.34%     0.34%  monte_carlo  libgsl.so.25.1.0         [.] gsl_vector_set
+     0.34%     0.34%  monte_carlo  libm.so.6                [.] 0x000000000006852d
+     0.34%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a2712a8827
+     0.34%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a2712a99ac
+     0.34%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb151b
+     0.34%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb152d
+     0.34%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb1599
+     0.17%     0.17%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000000000000a2f4
+     0.17%     0.17%  monte_carlo  libgsl.so.25.1.0         [.] log@plt
+     0.17%     0.17%  monte_carlo  libm.so.6                [.] 0x00000000000684b0
+     0.17%     0.17%  monte_carlo  libm.so.6                [.] 0x00000000000684df
+     0.17%     0.17%  monte_carlo  libm.so.6                [.] 0x0000000000068542
+     0.17%     0.17%  monte_carlo  libm.so.6                [.] 0x000000000006857a
+     0.17%     0.17%  monte_carlo  libm.so.6                [.] 0x000000000006863c
+     0.17%     0.17%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000023a59
+     0.17%     0.17%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000023a92
+     0.17%     0.17%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000023a99
+     0.17%     0.17%  monte_carlo  libgsl.so.25.1.0         [.] gsl_vector_add
+     0.17%     0.17%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000000000000a2da
+     0.17%     0.17%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x0000000000014380
+     0.17%     0.17%  monte_carlo  libm.so.6                [.] 0x00000000000685db
+     0.17%     0.17%  monte_carlo  libm.so.6                [.] 0x000000000006860b
+     0.17%     0.17%  monte_carlo  libm.so.6                [.] 0x0000000000068618
+     0.17%     0.17%  monte_carlo  libm.so.6                [.] 0x0000000000068663
+     0.17%     0.17%  monte_carlo  monte_carlo              [.] gsl_vector_get@plt
+     0.17%     0.17%  monte_carlo  libgomp.so.1.0.0         [.] 0x000000000002432b
+     0.17%     0.17%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000024182
+     0.17%     0.17%  monte_carlo  libgomp.so.1.0.0         [.] 0x000000000002418b
+     0.17%     0.00%  monte_carlo  monte_carlo              [.] openmp_init (inlined)
+     0.17%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a2712a825e
+     0.17%     0.00%  monte_carlo  libgsl.so.25.1.0         [.] cholesky_decomp_L3
+     0.17%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a2712a0bc9
+     0.17%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a2712aba60
+     0.17%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a27129cd50
+     0.17%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a27129e81d
+     0.17%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a2712a8202
+     0.17%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a2712982da
+     0.17%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a2712982f4
+     0.17%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000014a2712a2380
+     0.17%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf5a59
+     0.17%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf5a92
+     0.17%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf5a99
+     0.17%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf6182
+     0.17%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf618b
+     0.17%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x000014a270bf632b
+     0.17%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb14b0
+     0.17%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb14df
+     0.17%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb1542
+     0.17%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb157a
+     0.17%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb15db
+     0.17%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb160b
+     0.17%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb1618
+     0.17%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb163c
+     0.17%     0.00%  monte_carlo  libm.so.6                [.] 0x000014a270cb1663
+
+
+#
+# (Tip: Show individual samples with: perf script)
+#

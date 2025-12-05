@@ -1,11 +1,12 @@
 // Main entry point for running Monte Carlo simulations with different implementations
-// Supports: Serial, OpenMP (future), CUDA (future)
+// Supports: Serial, OpenMP, MPI+OpenMP, CUDA (future)
 
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <mpi.h>
 #include "model_interface.h"
 #include "utilities/load_binary.h"
 #include "utilities/load_config.h"
@@ -15,12 +16,19 @@
 #ifdef SERIAL_BUILD
 extern ModelFunctions get_serial_model(void);
 #endif
+
 #ifdef OPENMP_BUILD
 extern ModelFunctions get_openmp_model(void);
 #endif
-#ifdef MPI_BUILD
-extern ModelFunctions get_mpi_model(void);
+
+#ifdef OPENMP_OPT_BUILD
+extern ModelFunctions get_openmp_opt_model(void);
 #endif
+
+#ifdef MPI_OPENMP_BUILD
+extern ModelFunctions get_mpi_openmp_model(void);
+#endif
+
 #ifdef CUDA_BUILD
 extern ModelFunctions get_cuda_model(void);
 #endif
@@ -51,29 +59,17 @@ void make_clean(MonteCarloResult *result) {
     }
 }
 
-// Get user comment
-char* get_user_comment() {
-    char *comment = (char *)malloc(256);
-    if (!comment) {
-        return NULL;
-    }
 
-    printf("\nEnter a comment for this simulation (max 255 chars, or press Enter to skip): ");
-    fflush(stdout);
-
-    if (fgets(comment, 256, stdin) == NULL) {
-        free(comment);
-        return NULL;
-    }
-
-    // Remove trailing newline
-    size_t len = strlen(comment);
-    if (len > 0 && comment[len - 1] == '\n') {
-        comment[len - 1] = '\0';
-    }
-
-    return comment;
+// Get Slurm system information from environment variables - requested resources
+void get_slurm_info(int *slurm_nodes, int *slurm_threads, int *slurm_processes) {
+    char *env_nodes = getenv("SLURM_JOB_NUM_NODES");
+    char *env_threads = getenv("SLURM_CPUS_PER_TASK");
+    char *env_processes = getenv("SLURM_NTASKS");
+    *slurm_nodes = env_nodes ? atoi(env_nodes) : 0;
+    *slurm_threads = env_threads ? atoi(env_threads) : 0;
+    *slurm_processes = env_processes ? atoi(env_processes) : 0;
 }
+
 
 // Get system information from SLURM environment variables
 void get_system_info(int *nodes, int *threads, int *processes) {
@@ -98,16 +94,31 @@ void get_system_info(int *nodes, int *threads, int *processes) {
     *processes = env_val ? atoi(env_val) : 1;
 }
 
+
 // Get the next iteration number (thread-safe counter)
 int get_next_iteration_number() {
     static int iteration_counter = 0;
     return iteration_counter++;
 }
 
-int main() {
-    printf("Monte Carlo Financial Risk Simulation\n\n");
-    
-    printf("Loading parameters from binary files...\n");
+int main(int argc, char **argv) {
+    // Initialize MPI 
+    MPI_Init(&argc, &argv);
+
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank); // MPI rank
+    MPI_Comm_size(MPI_COMM_WORLD, &size); //MPI processes
+
+    // Only rank 0 prints (prevents duplicate output with multiple MPI processes)
+    if (rank == 0) {
+        printf("Monte Carlo Financial Risk Simulation\n");
+        if (size > 1) {
+            printf("Running with %d MPI processes\n\n", size);
+        } else {
+            printf("\n");
+        }
+        printf("Loading parameters from binary files...\n");
+    }
 
     // Load mu and Sigma and actual_freq from binary files
     gsl_vector *mu = load_mu_binary("data/mu.bin");
@@ -115,13 +126,16 @@ int main() {
     double actual_freq = load_actual_freq_binary("data/params.bin");
 
     if (!mu || !Sigma) {
-        fprintf(stderr, "Error: Failed to load binary files. Run Python preprocessing first.\n");
+        if (rank == 0) {
+            fprintf(stderr, "Error: Failed to load binary files. Run Python preprocessing first.\n");
+        }
         if (mu) gsl_vector_free(mu);
         if (Sigma) gsl_matrix_free(Sigma);
+        MPI_Finalize(); // early exit
         return 1;
     }
 
-    if (actual_freq < 0.0) {
+    if (actual_freq < 0.0 && rank == 0) {
         fprintf(stderr, "Warning: Failed to load actual_freq from params.bin, using NaN\n");
         actual_freq = NAN;
     }
@@ -132,9 +146,12 @@ int main() {
     // Load configuration parameters from config.yaml
     ConfigParams config;
     if (load_config("config.yaml", &config) != 0) {
-        fprintf(stderr, "Error: Failed to load config.yaml. Exiting.\n");
+        if (rank == 0) {
+            fprintf(stderr, "Error: Failed to load config.yaml. Exiting.\n");
+        }
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
+        MPI_Finalize(); // early exit
         return 1;
     }
 
@@ -142,36 +159,28 @@ int main() {
     double x = config.x;
     int M = config.M;
 
-    printf("\nSimulation Configuration:\n");
-    printf("  Number of assets (N): %d\n", N);
-    printf("  Crash threshold (k): %d\n", k);
-    printf("  Return threshold (x): %.2f%%\n", x * 100);
-    printf("  Number of trials (M): %d\n", M);
-    printf("  Training ratio: %.2f%%\n", config.train_ratio * 100);
-
-    // Get user comment for this simulation run
-    char *user_comment = get_user_comment();
-
-    // Use config comment as fallback if user comment is empty
-    char *final_comment = NULL;
-    if (user_comment && strlen(user_comment) > 0) {
-        final_comment = strdup(user_comment);
-    } else if (config.comment && strlen(config.comment) > 0) {
-        final_comment = strdup(config.comment);
-    } else {
-        final_comment = strdup("");
+    if (rank == 0) {
+        printf("\nSimulation Configuration:\n");
+        printf("  Number of assets (N): %d\n", N);
+        printf("  Crash threshold (k): %d\n", k);
+        printf("  Return threshold (x): %.2f%%\n", x * 100);
+        printf("  Number of trials (M): %d\n", M);
+        printf("  Training ratio: %.2f%%\n", config.train_ratio * 100);
     }
-    
-    if (user_comment) free(user_comment);
+
+    // Get user comment from config 
+    char *user_comment = config.comment;
 
     // Initialize parameters
     MonteCarloParams *params = (MonteCarloParams *)malloc(sizeof(MonteCarloParams));
     if (!params) {
-        fprintf(stderr, "Error: Failed to allocate parameters\n");
+        if (rank == 0) {
+            fprintf(stderr, "Error: Failed to allocate parameters\n");
+        }
         gsl_vector_free(mu);
         gsl_matrix_free(Sigma);
-        if (final_comment) free(final_comment);
         free_config(&config);
+        MPI_Finalize(); // early exit
         return 1;
     }
 
@@ -190,17 +199,25 @@ int main() {
     int nodes, threads, processes;
     get_system_info(&nodes, &threads, &processes);
 
+    int slurm_nodes, slurm_threads, slurm_processes;
+    get_slurm_info(&slurm_nodes, &slurm_threads, &slurm_processes);
     // Models to run - TODO: later read from config
     // const char *models_to_run[] = {"serial", "openmp"};
-    // int num_models = sizeof(models_to_run) / sizeof(models_to_run[0]);
+    // int num_models = sizeof(models_to_run) / sizeof(models_to_run[0])
 
     // Run all models from config
     for (int i = 0; i < config.num_models; i++) {
         const char *model_type = config.models[i];
         MonteCarloResult result = {0};
+
+        // Explicitly initialize timing field to "not measured"
+        result.kernel_time_ms = -1.0;
+
         ModelFunctions model;
 
-        printf("\n=== Running %s model ===\n", model_type);
+        if (rank == 0) {
+            printf("\n=== Running %s model ===\n", model_type);
+        }
 
         // Select model based on type
         if (strcmp(model_type, "serial") == 0) {
@@ -219,9 +236,17 @@ int main() {
             continue;
 #endif
         }
-        else if (strcmp(model_type, "mpi") == 0) {
-#ifdef MPI_BUILD
-            model = get_mpi_model();
+        else if(strcmp(model_type, "openmp_opt") == 0) {
+#ifdef OPENMP_OPT_BUILD
+            model = get_openmp_opt_model();
+#else
+            fprintf(stderr, "Error: OpenMP Optimized model not available in this build\n");
+            continue;
+#endif 
+        }           
+        else if (strcmp(model_type, "mpi_openmp") == 0) {
+#ifdef MPI_OPENMP_BUILD
+            model = get_mpi_openmp_model();
 #else
             fprintf(stderr, "Error: MPI model not available in this build\n");
             continue;
@@ -236,7 +261,9 @@ int main() {
 #endif
         }
         else {
-            fprintf(stderr, "Error: Unknown model type '%s'\n", model_type);
+            if (rank == 0) {
+                fprintf(stderr, "Error: Unknown model type '%s'\n", model_type);
+            }
             continue;
         }
 
@@ -244,63 +271,118 @@ int main() {
         struct timespec start_time, end_time;
         clock_gettime(CLOCK_MONOTONIC, &start_time);
 
-        // Run model
-        int status = model.run_model(params, &result);
+        // Determine if this is a distributed model that needs all ranks
+        int is_distributed_model = (strcmp(model_type, "mpi_openmp") == 0);
+        int status = -1;
+        
+        if (is_distributed_model) {
+            // Distributed models: all ranks participate
+            status = model.run_model(params, &result);
+        } else {
+            // Non-distributed models: only rank 0 runs, others wait
+            if (rank == 0) {
+                status = model.run_model(params, &result);
+            } else {
+                // Non-rank-0 processes skip execution but don't fail
+                status = 0;
+                // Initialize empty result for non-participating ranks
+                memset(&result, 0, sizeof(MonteCarloResult));
+                result.kernel_time_ms = -1.0;
+            }
+        }
 
+        // Synchronize all ranks before timing calculations
+        MPI_Barrier(MPI_COMM_WORLD);
+        
         // Calculate execution time in milliseconds (wall-clock time)
         clock_gettime(CLOCK_MONOTONIC, &end_time);
         long execution_time_ms = (long)((end_time.tv_sec - start_time.tv_sec) * 1000L +
                                         (end_time.tv_nsec - start_time.tv_nsec) / 1000000L);
 
+        // Get throughput in seconds
+        int throughput = (int)round((double)M * 1000.0 / (double)execution_time_ms);
+
+        // Calculate detailed timing metrics from kernel time
+        double kernel_time_ms = result.kernel_time_ms;
+        double overhead_time_ms = -1.0;
+        double kernel_throughput = -1.0;
+
+        if (kernel_time_ms >= 0.0) {
+            // Model supports kernel timing - calculate overhead and throughput
+            overhead_time_ms = (double)execution_time_ms - kernel_time_ms;
+
+            // Calculate throughput: trials per second
+            // Convert kernel_time_ms to seconds, then divide trials by time
+            if (kernel_time_ms > 0.0) {
+                double kernel_time_sec = kernel_time_ms / 1000.0;
+                kernel_throughput = (double)M / kernel_time_sec;
+            }
+            // else: kernel_time_ms == 0.0, keep throughput as -1.0 (can't divide by zero)
+        }
+
         if (status == 0) {
-            print_results(model.name, &result, M);
+            // Only rank 0 prints results and writes to CSV
+            if (rank == 0) {
+                print_results(model.name, &result, M);
 
-            // Write results to CSV
-            SimulationResultsData results_data = {
-                .iteration_id = iteration_id,
-                .timestamp = (long)time(NULL),
-                .execution_time_ms = execution_time_ms,
-                .comment = final_comment,
-                .start_date = config.start,
-                .end_date = config.end,
-                .train_ratio = config.train_ratio,
-                .M = M,
-                .k = k,
-                .x = x,
-                .model_name = model.name,
-                .seed = config.random_seed,  // Random seed from config
-                .nodes = nodes,
-                .threads = threads,
-                .processes = processes,
-                .indices = config.indices,
-                .num_indices = config.num_indices,
-                .actual_freq = actual_freq,
-                .P_hat = result.P_hat,
-                .count = result.count,
-                .std_error = result.std_error,
-                .ci_lower = result.ci_lower,
-                .ci_upper = result.ci_upper
-            };
+                // Write results to CSV
+                SimulationResultsData results_data = {
+                    .iteration_id = iteration_id,
+                    .timestamp = (long)time(NULL),
+                    .execution_time_ms = execution_time_ms,
+                    .MC_throughput_secs = throughput,
+                    .kernel_time_ms = kernel_time_ms,
+                    .overhead_time_ms = overhead_time_ms,
+                    .kernel_throughput = kernel_throughput,
+                    .comment = user_comment ? user_comment : "",
+                    .start_date = config.start,
+                    .end_date = config.end,
+                    .train_ratio = config.train_ratio,
+                    .M = M,
+                    .k = k,
+                    .x = x,
+                    .model_name = model.name,
+                    .seed = config.random_seed,  // Random seed from config
+                    .nodes = nodes,
+                    .threads = threads,
+                    .processes = processes,
+                    .indices = config.indices,
+                    .num_indices = config.num_indices,
+                    .actual_freq = actual_freq,
+                    .P_hat = result.P_hat,
+                    .count = result.count,
+                    .std_error = result.std_error,
+                    .ci_lower = result.ci_lower,
+                    .ci_upper = result.ci_upper
+                };
 
-            if (write_results_to_csv("results/simulation_results.csv", &results_data) != 0) {
-                fprintf(stderr, "Warning: Failed to write results to CSV\n");
-            } else {
-                printf("Results written to results/simulation_results.csv\n");
+                if (write_results_to_csv("results/simulation_results.csv", &results_data) != 0) {
+                    fprintf(stderr, "Warning: Failed to write results to CSV\n");
+                } else {
+                    printf("Results written to results/simulation_results.csv\n");
+                }
             }
         } else {
-            fprintf(stderr, "Error: %s model failed\n", model.name);
+            if (rank == 0) {
+                fprintf(stderr, "Error: %s model failed\n", model.name);
+            }
         }
 
         // Always cleanup S_values regardless of success/failure
         make_clean(&result);
 
-        printf("\n");
+        if (rank == 0) {
+            printf("\n");
+        }
     }
 
     free_params(params);
     free_config(&config);
-    if (final_comment) free(final_comment);
 
-    printf("Simulation complete.\n");
+    if (rank == 0) {
+        printf("Simulation complete.\n");
+    }
+
+    MPI_Finalize();
     return 0;
 }
