@@ -80,7 +80,7 @@ all: $(TARGET)
 	@echo "=== Build Complete ==="
 	@echo "Target: $(TARGET)"
 
-# Link main executable
+# Link main executable - FIXED: Use conditional linker and ALL_OBJ
 $(TARGET): $(ALL_OBJ)
 	@echo "Linking $@..."
 	$(LINKER) -o $@ $^ $(LINK_FLAGS)
@@ -101,17 +101,17 @@ $(OPENMP_OBJ): $(OPENMP_SRC)
 	@echo "Compiling $< with OpenMP..."
 	$(CC) $(CFLAGS) $(OMPFLAGS) $(OMP_INCLUDE) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
 
-# Compile optimized OpenMP model
+# Compile optimized OpenMP model - RESTORED
 $(OPENMP_OPT_OBJ): $(OPENMP_OPT_SRC)
 	@echo "Compiling $< with Optimized OpenMP..."
 	$(CC) $(CFLAGS) $(OMPFLAGS) $(OMP_INCLUDE) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
 
-# Compile MPI + OpenMP model
+# Compile MPI + OpenMP model - RESTORED
 $(MPI_OPENMP_OBJ): $(MPI_OPENMP_SRC)
 	@echo "Compiling $< with MPI+OpenMP..."
 	$(CC) $(CFLAGS) $(OMPFLAGS) $(OMP_INCLUDE) $(GSL_PATH) -I$(SRC_DIR) -c $< -o $@
 
-# Compile CUDA model (conditional)
+# Compile CUDA model (conditional) - FIXED
 ifeq ($(CUDA_AVAILABLE),yes)
 $(CUDA_OBJ): $(CUDA_SRC)
 	@echo "Compiling $< with CUDA..."

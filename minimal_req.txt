@@ -2,4 +2,4 @@
 numpy>=1.26.4
 pandas>=2.0.0
 PyYAML>=6.0
-yfinance>=0.2.0
+# yfinance removed - now using local CSV files from dataset/ folder

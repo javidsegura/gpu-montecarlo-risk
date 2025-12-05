@@ -13,16 +13,23 @@ start: "2015-01-01"  # Start date for historical data (YYYY-MM-DD)
 end: "2025-12-31"    # End date for historical data (YYYY-MM-DD)
 
 # Stock indices to analyze
+# Maps index names to CSV filenames in the dataset/ folder
 indices:
-  STOXX50E: "^STOXX50E"
-  CAC40: "^FCHI"
-  DAX: "^GDAXI"
-  FTSE100: "^FTSE"
-  FTSEMIB: "FTSEMIB.MI"
-  IBEX35: "^IBEX"
-  SMI: "^SSMI"
-  AEX: "^AEX"
-  BEL20: "^BFX"
+  AEX: "AEX.csv"
+  Bel20: "Bel20.csv"
+  Stoxx50: "Stoxx50.csv"
+  SMI: "SMI.csv"
+  Ibex35: "Ibex35.csv"
+  Stoxx600: "Stoxx600.csv"
+  PSI20: "PSI20.csv"
+  OMXS30: "OMXS30.csv"
+  OMXC20: "OMXC20.csv"
+  PX: "PX.csv"
+  ISEQ: "ISEQ.csv"
+  EuroNext100: "EuroNext100.csv"
+  ATX: "ATX.csv"
+  WIG20: "WIG20.csv"
+  WIG30: "WIG30.csv"
 
 # Data split ratio
 train_ratio: 0.8  # 80% training, 20% testing
