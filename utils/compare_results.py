@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script to compare results between openmp_opt and openmp
-Calculates averages and improvements (speedup/improvements) based on simulation_results.csv
+Calculates averages and improvements (speedup/improvements)
 """
 
 import pandas as pd
@@ -73,8 +73,8 @@ def compare_implementations(csv_file):
         if metric in results:
             avg_opt = results[metric]['openmp_opt_avg']
             avg_openmp = results[metric]['openmp_avg']
-            speedup = avg_openmp / avg_opt
-            improvement_pct = ((avg_openmp - avg_opt) / avg_openmp) * 100
+            speedup = avg_openmp / avg_opt if avg_opt != 0 else float('inf')
+            improvement_pct = ((avg_openmp - avg_opt) / avg_openmp) * 100 if avg_openmp != 0 else 0.0
 
             print(f"\n  {metrics[metric]}:")
             print(f"    Speedup: {speedup:.2f}x")

@@ -160,12 +160,49 @@ static int openmp_opt_simulate(MonteCarloParams *params, MonteCarloResult *resul
     int count = 0;
     OpenMPModelState *state = (OpenMPModelState *)model_state;
 
+    int validation_error = 0;
+
+    // VALIDATION: Check actual vs expected thread count
+    #pragma omp parallel reduction(||:validation_error)
+    {
+        int thread_id = omp_get_thread_num();
+        int actual_num_threads = omp_get_num_threads();
+        
+        // SAFETY CHECK: Validate thread count consistency
+        if (actual_num_threads != state->num_threads) {
+            #pragma omp critical
+            {
+                fprintf(stderr, "Error: Thread count mismatch! Expected %d, got %d\n", 
+                        state->num_threads, actual_num_threads);
+                validation_error = 1;
+            }
+        }
+        
+        // SAFETY CHECK: Validate thread ID bounds
+        if (thread_id >= state->num_threads) {
+            #pragma omp critical
+            {
+                fprintf(stderr, "Error: Thread ID %d exceeds allocated RNGs (%d)\n", 
+                        thread_id, state->num_threads);
+                validation_error = 1;
+            }
+        }
+    }
+    
+    // Exit early if validation failed
+    if (validation_error) {
+        fprintf(stderr, "Error: Thread safety validation failed - aborting simulation\n");
+        openmp_cleanup_state(model_state);
+        free(result->S_values);
+        return -1;
+    }
+
     // Start timing the kernel (parallel computation)
     double kernel_start_time = omp_get_wtime();
 
     #pragma omp parallel
     {
-        // Get thread-specific RNG (pre-allocated in init, no malloc here!)
+        // Get thread-specific RNG (now guaranteed to be safe!)
         int thread_id = omp_get_thread_num();
         gsl_rng *my_rng = state->rng_array[thread_id];
 

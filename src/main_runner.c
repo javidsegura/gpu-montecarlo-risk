@@ -37,7 +37,6 @@ extern ModelFunctions get_cuda_model(void);
 void print_results(const char *model_name, MonteCarloResult *result, int M) {
     printf("\n%s RESULTS\n", model_name);
     printf("Estimated Probability (P_MIN): %.6f\n", result->P_hat);
-    printf("Estimated Probability (P_MIN): %.6f\n", result->P_hat);
     printf("Extreme Events Count: %d out of %d trials\n", result->count, M);
     printf("Standard Error: %.6f\n", result->std_error);
     printf("95%% Confidence Interval: [%.6f, %.6f]\n", result->ci_lower, result->ci_upper);

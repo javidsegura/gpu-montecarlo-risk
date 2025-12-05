@@ -225,9 +225,14 @@ static int mpi_openmp_simulate(MonteCarloParams *params, MonteCarloResult *resul
         gsl_vector *Z = gsl_vector_alloc(params->N);
         gsl_vector *R = gsl_vector_alloc(params->N);
 
+        if (!Z || !R) {
+            #pragma omp atomic write
+            thread_err = 1;
+        }
+
         #pragma omp barrier
 
-        if (!thread_err && local_M > 0) {
+        if (!thread_err && Z && R && local_M > 0) {
             gsl_rng *my_rng = state->rng_array[thread_id];
 
             #pragma omp for reduction(+:local_count) schedule(static)
@@ -240,8 +245,8 @@ static int mpi_openmp_simulate(MonteCarloParams *params, MonteCarloResult *resul
             }
         }
 
-        gsl_vector_free(Z);
-        gsl_vector_free(R);
+        if (Z) gsl_vector_free(Z);
+        if (R) gsl_vector_free(R);
     }
 
     // End timing the kernel

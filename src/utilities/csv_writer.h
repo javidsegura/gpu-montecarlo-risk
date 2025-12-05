@@ -9,7 +9,7 @@ typedef struct {
     int iteration_id;                  // Unique identifier for this simulation run
     long timestamp;                    // Unix timestamp when simulation was run
     long execution_time_ms;            // Execution time in milliseconds
-    int MC_throughput_secs;            // Monte Carlo throughput in seconds
+    double MC_throughput_secs;            // Monte Carlo throughput (trials per second)
     double kernel_time_ms;             // Time spent in computation kernel
     double overhead_time_ms;           // Time spent in init/cleanup
     double kernel_throughput;          // Kernel throughput in trials per second

@@ -43,4 +43,4 @@ x: 0.02   # Threshold for crash detection (e.g., 2% loss)
 k: 5      # Minimum number of indices that must crash simultaneously to trigger an extreme event
 
 # Additional notes
-comment: "Run with 100_000_000 M"
+comment: "Run with 100_000 M"
