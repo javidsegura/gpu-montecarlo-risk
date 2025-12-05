@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=montecarlo_gpu
+#SBATCH --job-name=montecarlo_gpu_optimized
 #SBATCH --partition=gpu-node
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -7,13 +7,13 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=8GB
 #SBATCH --time=00:10:00
-#SBATCH --output=slurm-gpu-%j.out
-#SBATCH --error=slurm-gpu-%j.err
+#SBATCH --output=slurm-gpu-optimized-%j.out
+#SBATCH --error=slurm-gpu-optimized-%j.err
 
 set -e
 
 echo "=========================================="
-echo "Monte Carlo Risk Analysis (GPU)"
+echo "Monte Carlo Risk Analysis (GPU - OPTIMIZED)"
 echo "=========================================="
 echo "Job ID: $SLURM_JOB_ID"
 echo "Node: $SLURM_NODELIST"
@@ -89,15 +89,15 @@ deactivate
 echo "Preprocessing done."
 echo ""
 
-# STEP 2: Compilation (Container)
+# STEP 2: Compilation (Container) - OPTIMIZED VERSION
 echo "=========================================="
-echo "STEP 2: Compilation (Container)"
+echo "STEP 2: Compilation (Container) - OPTIMIZED"
 echo "=========================================="
 # We run compilation manually because 'make' might not be in the container
 # The environment variables CPATH/LIBRARY_PATH exported above will be used by gcc/nvcc inside
 $WRAP "$IMG" bash -c "
 set -e
-echo 'Compiling inside container...'
+echo 'Compiling inside container (OPTIMIZED version)...'
 
 # Create directories
 mkdir -p bin obj
@@ -116,9 +116,10 @@ echo 'Compiling models...'
 gcc -Wall -Wextra -O3 -std=gnu11 -Isrc -c src/02-C-serial/monte_carlo_serial.c -o obj/monte_carlo_serial.o
 gcc -Wall -Wextra -O3 -std=gnu11 -fopenmp -Isrc -c src/03-openMP/monte_carlo_omp.c -o obj/monte_carlo_omp.o
 
-echo 'Compiling CUDA model...'
+echo 'Compiling CUDA model (OPTIMIZED)...'
 # Note: Adding -I/host-cuda/include to find curand_kernel.h
-nvcc -O3 -arch=sm_60 -Xcompiler -fPIC -Isrc -I/host-cuda/include -c src/05-GPU/monte_carlos_cuda.cu -o obj/monte_carlo_cuda.o
+# Using optimized version with shared memory reduction and loop unrolling
+nvcc -O3 -arch=sm_60 -Xcompiler -fPIC -Isrc -I/host-cuda/include -c src/05-GPU/monte_carlo_cuda_optimized.cu -o obj/monte_carlo_cuda.o
 
 # Compile Main
 echo 'Compiling main runner...'
@@ -143,7 +144,7 @@ echo ""
 
 # STEP 3: Run Simulation (Container)
 echo "=========================================="
-echo "STEP 3: Running GPU Simulation"
+echo "STEP 3: Running GPU Simulation (OPTIMIZED)"
 echo "=========================================="
 # We run the simulation inside the container.
 # Explicitly construct LD_LIBRARY_PATH to include GSL, YAML, and Host CUDA
@@ -155,6 +156,8 @@ $WRAP "$IMG" bash -c "
 
 echo ""
 echo "=========================================="
-echo "GPU Simulation Complete!"
+echo "GPU Simulation Complete (OPTIMIZED)!"
 echo "Job finished at: $(date)"
 echo "=========================================="
+
+

@@ -71,7 +71,7 @@ __global__ void monte_carlo_kernel(int M, int N, int k, double x,
     }
 }
 
-// Host wrapper
+// Host wrapper with manual profiling using CUDA Events
 extern "C" int cuda_simulate(MonteCarloParams *params, MonteCarloResult *result) {
     printf("Starting CUDA Monte Carlo simulation with M = %d trials...\n", params->M);
     
@@ -79,6 +79,24 @@ extern "C" int cuda_simulate(MonteCarloParams *params, MonteCarloResult *result)
         fprintf(stderr, "Error: N > 64 not supported in this CUDA kernel implementation\n");
         return -1;
     }
+
+    // Create CUDA events for detailed timing
+    cudaEvent_t start_total, stop_total;
+    cudaEvent_t start_memcpy_h2d, stop_memcpy_h2d;
+    cudaEvent_t start_kernel, stop_kernel;
+    cudaEvent_t start_memcpy_d2h, stop_memcpy_d2h;
+    
+    cudaEventCreate(&start_total);
+    cudaEventCreate(&stop_total);
+    cudaEventCreate(&start_memcpy_h2d);
+    cudaEventCreate(&stop_memcpy_h2d);
+    cudaEventCreate(&start_kernel);
+    cudaEventCreate(&stop_kernel);
+    cudaEventCreate(&start_memcpy_d2h);
+    cudaEventCreate(&stop_memcpy_d2h);
+
+    // Start total timer
+    cudaEventRecord(start_total);
 
     // 1. Prepare Cholesky on Host
     gsl_matrix *L = gsl_matrix_alloc(params->N, params->N);
@@ -116,31 +134,72 @@ extern "C" int cuda_simulate(MonteCarloParams *params, MonteCarloResult *result)
     if (cudaMalloc(&d_S_values, params->M * sizeof(int)) != cudaSuccess) return -1;
     if (cudaMalloc(&d_count, sizeof(int)) != cudaSuccess) return -1;
 
-    // 3. Copy Data
+    // 3. Copy Data (H2D) - Profile memory transfer
+    cudaEventRecord(start_memcpy_h2d);
     cudaMemcpy(d_mu, h_mu_flat, params->N * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(d_L, h_L_flat, params->N * params->N * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemset(d_count, 0, sizeof(int));
+    cudaEventRecord(stop_memcpy_h2d);
+    cudaEventSynchronize(stop_memcpy_h2d);
 
-    // 4. Launch Kernel
+    // 4. Launch Kernel - Profile kernel execution
     int blockSize = 256;
     int numBlocks = (params->M + blockSize - 1) / blockSize;
+    
+    cudaEventRecord(start_kernel);
     monte_carlo_kernel<<<numBlocks, blockSize>>>(params->M, params->N, params->k, params->x, 
                                                  d_mu, d_L, params->random_seed, 
                                                  d_S_values, d_count);
+    cudaEventRecord(stop_kernel);
+    cudaEventSynchronize(stop_kernel);
     
-    cudaError_t err = cudaDeviceSynchronize();
+    cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
          fprintf(stderr, "CUDA Kernel Failed: %s\n", cudaGetErrorString(err));
          return -1;
     }
 
-    // 5. Copy Results Back
+    // 5. Copy Results Back (D2H) - Profile memory transfer
     result->S_values = (int*)malloc(params->M * sizeof(int));
+    cudaEventRecord(start_memcpy_d2h);
     cudaMemcpy(result->S_values, d_S_values, params->M * sizeof(int), cudaMemcpyDeviceToHost);
     
     int h_count;
     cudaMemcpy(&h_count, d_count, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaEventRecord(stop_memcpy_d2h);
+    cudaEventSynchronize(stop_memcpy_d2h);
+    
     result->count = h_count;
+
+    // Stop total timer
+    cudaEventRecord(stop_total);
+    cudaEventSynchronize(stop_total);
+
+    // Calculate elapsed times
+    float time_memcpy_h2d = 0, time_kernel = 0, time_memcpy_d2h = 0, time_total = 0;
+    cudaEventElapsedTime(&time_memcpy_h2d, start_memcpy_h2d, stop_memcpy_h2d);
+    cudaEventElapsedTime(&time_kernel, start_kernel, stop_kernel);
+    cudaEventElapsedTime(&time_memcpy_d2h, start_memcpy_d2h, stop_memcpy_d2h);
+    cudaEventElapsedTime(&time_total, start_total, stop_total);
+
+    // Print detailed profiling information
+    printf("\n=== CUDA PROFILING BREAKDOWN ===\n");
+    printf("Memory Transfer (H->D):      %.3f ms (%.1f%%)\n", 
+           time_memcpy_h2d, (time_memcpy_h2d/time_total)*100);
+    printf("  - mu vector:               %zu bytes\n", params->N * sizeof(double));
+    printf("  - L matrix:                %zu bytes\n", params->N * params->N * sizeof(double));
+    printf("Kernel Execution:            %.3f ms (%.1f%%)\n", 
+           time_kernel, (time_kernel/time_total)*100);
+    printf("  - Blocks:                  %d\n", numBlocks);
+    printf("  - Threads per block:        %d\n", blockSize);
+    printf("  - Total threads:           %d\n", numBlocks * blockSize);
+    printf("  - Throughput:              %.2f M sim/s\n", params->M / (time_kernel / 1000.0) / 1e6);
+    printf("Memory Transfer (D->H):      %.3f ms (%.1f%%)\n", 
+           time_memcpy_d2h, (time_memcpy_d2h/time_total)*100);
+    printf("  - S_values array:          %zu bytes\n", params->M * sizeof(int));
+    printf("  - count value:             %zu bytes\n", sizeof(int));
+    printf("Total GPU Time:              %.3f ms\n", time_total);
+    printf("================================\n\n");
 
     // 6. Stats
     result->P_hat = (double)result->count / params->M;
@@ -157,6 +216,16 @@ extern "C" int cuda_simulate(MonteCarloParams *params, MonteCarloResult *result)
     free(h_mu_flat);
     free(h_L_flat);
     gsl_matrix_free(L);
+    
+    // Destroy CUDA events
+    cudaEventDestroy(start_total);
+    cudaEventDestroy(stop_total);
+    cudaEventDestroy(start_memcpy_h2d);
+    cudaEventDestroy(stop_memcpy_h2d);
+    cudaEventDestroy(start_kernel);
+    cudaEventDestroy(stop_kernel);
+    cudaEventDestroy(start_memcpy_d2h);
+    cudaEventDestroy(stop_memcpy_d2h);
 
     printf("CUDA Simulation complete\n");
     return 0;

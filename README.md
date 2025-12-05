@@ -1,5 +1,5 @@
 # HOW TO EXECUTE
-1. For Cuda stuff make sure comment out all models that arent 'cuda'. Then run `sbatch gpu_script.sh`
+1. For Cuda stuff make sure comment out all models that arent 'cuda'. Then run `sbatch gpu_script.sh`, to run the optimized/profiled version run `sbatch gpu_script_optimized.sh`
 2. For the CPU stuff comment out 'cuda' model and run `sbatch cpu_script.sh`
 
 Accelerated a multi-asset risk engine by 192×, boosting throughput from ~188k to 36 million simulations per second on NVIDIA GPUs; reduced runtime for 100M iterations from 9 minutes (Python) to under 3 seconds (CUDA).
