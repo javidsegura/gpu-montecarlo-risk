@@ -4,7 +4,7 @@
 CC = mpicc
 CFLAGS = -Wall -O3 -march=native -g
 # macOS clang support: use -Xclang -fopenmp for clang, -fopenmp for GCC
-OMP_FLAGS = -fopenmp
+OMP_FLAGS = -Xclang -fopenmp
 LIBOMP_PATH = $(shell brew --prefix libomp 2>/dev/null)
 OMP_INCLUDE = $(if $(LIBOMP_PATH),-I$(LIBOMP_PATH)/include,)
 OMP_LIBPATH = $(if $(LIBOMP_PATH),-L$(LIBOMP_PATH)/lib,)

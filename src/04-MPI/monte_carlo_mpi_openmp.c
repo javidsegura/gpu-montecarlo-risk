@@ -103,7 +103,7 @@ static int mpi_openmp_init(MonteCarloParams *params, void **model_state, int ran
 // Run a single trial - thread-safe version using per-thread RNG (NO critical section)
 // Called from within parallel loop with thread-local workspace
 static int mpi_openmp_run_trial(void *model_state, MonteCarloParams *params,
-                                 gsl_rng *thread_rng, gsl_vector *Z, gsl_vector *R, int *S_out) {
+                                gsl_rng *thread_rng, gsl_vector *Z, gsl_vector *R, int *S_out) {
     MPIOpenMPModelState *state = (MPIOpenMPModelState *)model_state;
 
     // Generate N independent standard normal variates (using per-thread RNG - NO CRITICAL SECTION)
@@ -142,7 +142,9 @@ static void mpi_openmp_cleanup_state(void *model_state) {
             free(state->rng_array);
         }
         // Free Cholesky matrix
-        if (state->L) {gsl_matrix_free(state->L);}
+        if (state->L) {
+            gsl_matrix_free(state->L);
+        }
         free(state);
     }
 }
@@ -175,48 +177,27 @@ static int mpi_openmp_simulate(MonteCarloParams *params, MonteCarloResult *resul
     }
 
     // Local allocations + init, with a GLOBAL error check
-    int *local_S_values = NULL;
     void *model_state = NULL;
     int local_err_init = 0;
     int global_err_init = 0;
 
-    // STEP 2: Allocate local result arrays (only for this rank's trials)
-    if (local_M > 0) {
-        local_S_values = (int *)calloc(local_M, sizeof(int));
-        if (!local_S_values) {
-            fprintf(stderr, "[Rank %d] Error: Failed to allocate local S_values array\n", rank);
-            local_err_init = 1;
-        }
-    } else {
-        // No trials on this rank; it's valid to have no local_S_values
-        local_S_values = NULL;
-    }
-
-    // STEP 3: Initialize model resources (Cholesky + per-thread RNGs)
-    if (!local_err_init) {
-        int status = mpi_openmp_init(params, &model_state, rank, size);
-        if (status != 0) {
-            // mpi_openmp_init already printed an error
-            local_err_init = 1;
-        }
+    // STEP 2: Initialize model resources (Cholesky + per-thread RNGs)
+    int status = mpi_openmp_init(params, &model_state, rank, size);
+    if (status != 0) {
+        local_err_init = 1;
     }
 
     // Make sure ALL ranks know if ANY rank failed before doing compute/collectives
     MPI_Allreduce(&local_err_init, &global_err_init, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
     if (global_err_init) {
-        // Clean up whatever was allocated on this rank
-        if (local_S_values) {
-            free(local_S_values);
-        }
         if (model_state) {
             mpi_openmp_cleanup_state(model_state);
         }
-        // All ranks return the same error code
         return -1;
     }
 
-    // STEP 4: Run local_M trials in PARALLEL using OpenMP
+    // STEP 3: Run local_M trials in PARALLEL using OpenMP
     int local_count = 0;
     MPIOpenMPModelState *state = (MPIOpenMPModelState *)model_state;
 
@@ -228,46 +209,37 @@ static int mpi_openmp_simulate(MonteCarloParams *params, MonteCarloResult *resul
 
     #pragma omp parallel shared(thread_err)
     {
-        // Get thread-specific RNG (pre-allocated in init, no malloc here!)
         int thread_id = omp_get_thread_num();
         int nthreads = omp_get_num_threads();
         
         if (nthreads != state->num_threads) {
-            // This should never happen since we set num_threads in init
             #pragma omp single
             {
                 fprintf(stderr, "[Rank %d] Warning: Number of threads changed from %d to %d\n",
                         rank, state->num_threads, nthreads);
             }
-            // Mark an error (atomic to avoid a data race on thread_err)
             #pragma omp atomic write
             thread_err = 1;
         }
 
-        // Allocate thread-local workspace ONCE per thread (major optimization)
         gsl_vector *Z = gsl_vector_alloc(params->N);
         gsl_vector *R = gsl_vector_alloc(params->N);
 
-        #pragma omp barrier 
+        #pragma omp barrier
 
-        if (!thread_err){ 
+        if (!thread_err && local_M > 0) {
             gsl_rng *my_rng = state->rng_array[thread_id];
-            // Parallel loop over local trials with reduction for local_count
-            // Use static scheduling for better cache locality and less overhead
+
             #pragma omp for reduction(+:local_count) schedule(static)
             for (int j = 0; j < local_M; j++) {
-                // Run trial using thread-local RNG and workspace (NO CRITICAL SECTION)
                 int S = 0;
                 mpi_openmp_run_trial(model_state, params, my_rng, Z, R, &S);
-                local_S_values[j] = S;
-                // Check if this trial resulted in an extreme event
                 if (S >= params->k) {
                     local_count++;
                 }
             }
         }
 
-        // Free thread-local workspace (RNGs freed in cleanup)
         gsl_vector_free(Z);
         gsl_vector_free(R);
     }
@@ -275,91 +247,39 @@ static int mpi_openmp_simulate(MonteCarloParams *params, MonteCarloResult *resul
     // End timing the kernel
     double kernel_end_time = MPI_Wtime();
     double local_kernel_time_ms = (kernel_end_time - kernel_start_time) * 1000.0;
-    
-    
+
     printf("[Rank %d] Local computation complete (%.3f ms)\n", rank, local_kernel_time_ms);
-    
+
     // Check if any OpenMP thread on any rank saw a threading error
     int local_err_threads = thread_err;
     int global_err_threads = 0;
     MPI_Allreduce(&local_err_threads, &global_err_threads, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
     if (global_err_threads) {
-        // Clean up and report backend failure to the caller
-        free(local_S_values);
         mpi_openmp_cleanup_state(model_state);
         return -1;
     }
 
-    // STEP 5: Prepare gather buffers and check for allocation errors collectively
-    int *recvcounts = NULL;
-    int *displs = NULL;
-    int *global_S_values = NULL;
-    int local_err_gather = 0;
-
-    if (rank == 0) {
-        recvcounts = (int *)malloc(size * sizeof(int));
-        displs     = (int *)malloc(size * sizeof(int));
-
-        if (!recvcounts || !displs) {
-            fprintf(stderr, "[Rank 0] Error: Failed to allocate recvcounts/displs\n");
-            local_err_gather = 1;
-        } else {
-            for (int r = 0; r < size; r++) {
-                recvcounts[r] = trials_per_rank + (r < remainder ? 1 : 0);
-                displs[r]     = r * trials_per_rank + (r < remainder ? r : remainder);
-            }
-
-            global_S_values = (int *)malloc(params->M * sizeof(int));
-            if (!global_S_values) {
-                fprintf(stderr, "[Rank 0] Error: Failed to allocate global_S_values array\n");
-                local_err_gather = 1;
-            }
-        }
-    }
-
-    // Check if any rank encountered an error (so far it's only rank 0 that can set local_err)
-    int global_err_gather = 0;
-    MPI_Allreduce(&local_err_gather, &global_err_gather, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-
-    if (global_err_gather) {
-        // Clean up and return error BEFORE posting any nonblocking collectives
-        if (rank == 0) {
-            free(recvcounts);
-            free(displs);
-            free(global_S_values);
-        }
-        free(local_S_values);
-        mpi_openmp_cleanup_state(model_state);
-        return -1;
-    }
-
-    // Aggregate results across all MPI processes using non-blocking MPI operations
+    // STEP 4: Aggregate results across all MPI processes using non-blocking MPI operations
     int global_count = 0;
-    MPI_Request reduce_request, gatherv_request, time_request;
+    MPI_Request reduce_request, time_request;
 
     // 1) Non-blocking reduce for global count
     MPI_Ireduce(&local_count, &global_count, 1, MPI_INT, MPI_SUM,
                 0, MPI_COMM_WORLD, &reduce_request);
 
-    // 2) Non-blocking gatherv for all S_values to rank 0
-    MPI_Igatherv(local_S_values, local_M, MPI_INT,
-                 global_S_values, recvcounts, displs, MPI_INT,
-                 0, MPI_COMM_WORLD, &gatherv_request);
-
-    // 3) Non-blocking reduce for maximum kernel time across ranks
+    // 2) Non-blocking reduce for maximum kernel time across ranks
     double max_kernel_time_ms = 0.0;
     MPI_Ireduce(&local_kernel_time_ms, &max_kernel_time_ms, 1, MPI_DOUBLE, MPI_MAX,
                 0, MPI_COMM_WORLD, &time_request);
 
-    // Wait for all MPI requests to complete before processing results
-    MPI_Request requests[3] = { reduce_request, gatherv_request, time_request };
-    MPI_Waitall(3, requests, MPI_STATUSES_IGNORE);
+    // Wait for both requests to complete
+    MPI_Request requests[2] = { reduce_request, time_request };
+    MPI_Waitall(2, requests, MPI_STATUSES_IGNORE);
 
-    // STEP 6: Rank 0 computes final statistics
+    // STEP 5: Rank 0 computes final statistics
     if (rank == 0) {
-        // Store gathered per-trial S values in the result (caller owns freeing them)
-        result->S_values = global_S_values;
+        result->S_values = NULL;  // This MPI model does not return per-trial S values
         result->count = global_count;
         result->kernel_time_ms = max_kernel_time_ms;
         
@@ -375,17 +295,12 @@ static int mpi_openmp_simulate(MonteCarloParams *params, MonteCarloResult *resul
         double margin = 1.96 * result->std_error;
         result->ci_lower = fmax(0.0, result->P_hat - margin);
         result->ci_upper = fmin(1.0, result->P_hat + margin);
-
-        free(recvcounts);
-        free(displs);
     }
 
-    // STEP 7: Cleanup local resources
-    free(local_S_values);
+    // STEP 6: Cleanup local resources
     mpi_openmp_cleanup_state(model_state);
 
     return 0;
-
 }
 
 // Return ModelFunctions struct for this model

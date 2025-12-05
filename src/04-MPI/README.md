@@ -6,45 +6,157 @@ This is a distributed-memory parallel implementation using hybrid MPI and OpenMP
 
 The hybrid MPI+OpenMP version builds upon the optimized OpenMP approach by adding a distributed-memory layer that enables scaling beyond the limits of a single compute node.
 
-The previous OpenMP-only versions were constrained by the number of cores available on a single machine. The hybrid version combines the best of both worlds: MPI processes distribute Monte Carlo trials across multiple nodes, while OpenMP threads within each process exploit the shared-memory parallelism of multi-core nodes.
+Previous OpenMP-only versions were constrained by the number of cores available on a single machine. The hybrid version combines the best of both worlds: MPI processes distribute Monte Carlo trials across multiple nodes, while OpenMP threads within each process exploit shared-memory parallelism inside each node.
 
 ## Data Structures
 
-**MonteCarloParams** - Input parameters including N assets, k crash threshold, covariance matrix Sigma, mean returns mu, threshold x, M trials, and random seed for deterministic runs for a fixed MPI/OpenMP configuration.
+**MonteCarloParams** – Input parameters including N assets, k crash threshold, covariance matrix Sigma, mean returns mu, threshold x, total trials M, and the random seed used to ensure deterministic behavior for any *fixed* MPI/OpenMP configuration.
 
-**MonteCarloResult** - Output results containing probability estimate P_hat, count of extreme events, S_values array storing crashes per trial, standard error, 95% confidence interval bounds, and maximum kernel timing measurements across MPI processes.
+**MonteCarloResult** – Output results containing estimated probability P_hat, total extreme event count, standard error, 95% confidence interval bounds, and the maximum kernel time measured across MPI ranks. Note: S_values is set to NULL in the MPI version to reduce memory usage and drastically reduce communication cost on distributed environments.
 
-**MPIOpenMPModelState** - Internal state maintaining the shared Cholesky decomposition L matrix (replicated across processes), an array of random number generators (one per OpenMP thread per MPI process), MPI rank and size information, and thread count for hierarchical resource management.
+**MPIOpenMPModelState** – Internal model state containing the shared Cholesky decomposition matrix L (replicated on each MPI process), an array of per-thread random number generators (one gsl_rng per OpenMP thread), MPI rank and size information, and thread-count metadata used for hierarchical parallelism management.
 
 ## Core Functions
 
-**mpi_openmp_init()** - Distributed initialization that computes the Cholesky decomposition once per MPI process and initializes dedicated random number generators for each OpenMP thread within that process. Each generator receives a deterministic seed of the form params->random_seed + mpi_rank * 1000 + thread_id, which is designed to give distinct random streams per thread and rank and enables reproducible runs for a fixed MPI/OpenMP configuration (same ranks, threads, and seed).
+**mpi_openmp_init()** – Distributed initialization routine executed once per MPI rank. It computes the Cholesky decomposition of Sigma, allocates one RNG per OpenMP thread, and seeds each RNG deterministically using:
 
-**mpi_openmp_run_trial()** - Optimized trial execution using thread-local workspace allocated per thread within each MPI process. Generates N independent standard normals from the thread's dedicated RNG, transforms them to correlated returns using R = mu + L*Z, and counts crashes. Each trial executes completely independently across the distributed system.
+```
+params->random_seed + mpi_rank * 1000 + thread_id
+```
 
-**mpi_openmp_simulate()** - Main distributed simulation driver that coordinates work across MPI processes and OpenMP threads. Each MPI process calculates its subset of trials, executes them using the optimized OpenMP parallel region, then participates in MPI reductions to aggregate results. Includes kernel timing measurements and minimal communication overhead.
+This guarantees independent random streams for each (rank, thread) pair and produces reproducible simulation results for any fixed MPI+OpenMP configuration.
 
-**mpi_openmp_cleanup_state()** - Distributed cleanup that releases memory for all per-thread random number generators and the shared Cholesky matrix on each MPI process, ensuring there are no leaks in the model’s internal state.
+---
+
+**mpi_openmp_run_trial()** – Executes one Monte Carlo trial using thread-local workspace. Each thread generates N standard normal samples, computes correlated returns via:
+
+```
+R = mu + L * Z
+```
+
+and counts the number of crashes. No synchronization is required between threads or ranks: each trial is fully independent.
+
+---
+
+**mpi_openmp_simulate()** – Main distributed driver coordinating work across MPI and OpenMP:
+
+- Uses a block + remainder workload distribution so that ranks differ by at most one trial.
+- Performs all trial computations in parallel using OpenMP threads within each rank.
+- Aggregates global results using **non-blocking MPI_Ireduce** calls for:
+  - total count of extreme events
+  - maximum kernel time across ranks
+
+This avoids collecting per-trial data and drastically reduces communication overhead, allowing the model to scale efficiently across multiple nodes.
+
+---
+
+**mpi_openmp_cleanup_state()** – Releases all internal model resources, including all per-thread RNGs and the replicated Cholesky matrix, ensuring each MPI rank frees its memory correctly.
+
+## Design Decision: Why S_values Are Not Collected
+
+The MPI implementation uses a **streaming computation model** that computes but does not store per-trial crash counts (S_values). This is a deliberate design choice based on the mathematical requirements of Monte Carlo estimation.
+
+### What Happens in Each Trial
+
+For every trial j, the code:
+
+1. **Computes S** (number of crashes): This value is calculated by `mpi_openmp_run_trial()` and returned as a temporary variable
+2. **Tests the threshold**: Checks if `S >= k` (extreme event condition)
+3. **Updates the counter**: If the condition is true, increments `local_count`
+4. **Discards S**: The value of S is immediately overwritten in the next iteration
+
+### Comparison with OpenMP Version
+
+**OpenMP Implementation:**
+```c
+int S = 0;
+openmp_run_trial(..., &S);
+result->S_values[j] = S;    // ← STORES S in array
+if (S >= k) {
+    count++;
+}
+```
+
+**MPI Implementation:**
+```c
+int S = 0;
+mpi_openmp_run_trial(..., &S);
+// No storage - S exists only temporarily
+if (S >= k) {
+    local_count++;          // ← ONLY accumulates count
+}
+```
+
+### Why This Is Mathematically Sufficient
+
+The Monte Carlo probability estimate is computed as:
+
+```
+P_hat = (number of trials where S >= k) / M
+```
+
+The individual S values are **not required** for this calculation. Only the **total count** of extreme events matters. Statistical measures (standard error, confidence intervals) are also derived solely from this count:
+
+```
+std_error = sqrt(P_hat * (1 - P_hat) / M)
+CI = P_hat ± 1.96 * std_error
+```
+
+### Benefits of Not Storing S_values
+
+1. **Memory efficiency**: Storage is O(N) instead of O(M). For M = 10^9 trials, this saves ~4 GB of RAM
+2. **Communication efficiency**: Only two scalar reductions instead of gathering M integers across all ranks
+3. **Scalability**: Enables simulations with billions of trials on distributed systems
+4. **Streaming computation**: Each trial's memory is reused, improving cache performance
+
+### When S_values Would Be Useful
+
+The S_values array is valuable for:
+- Debugging and validation during development
+- Post-processing analysis (e.g., histograms of crash counts)
+- Detailed statistical diagnostics
+
+However, for production Monte Carlo estimation on distributed systems, storing per-trial data is unnecessary and counterproductive to scalability.
 
 ## Advanced Distributed Random Number Generation Strategy
 
-Each thread in the distributed system receives a deterministic seed of the form
-base_seed + mpi_rank * 1000 + thread_id.
-This ensures reproducible seeding for a fixed MPI/OpenMP configuration and provides reasonably independent streams for all (rank, thread) pairs without requiring coordination or communication. Because every thread owns its own RNG instance, no synchronization is needed during random number generation.
+Each thread in the system receives a deterministic seed of the form:
+
+```
+base_seed + mpi_rank * 1000 + thread_id
+```
+
+This strategy provides:
+
+- Reproducible random streams across the entire distributed job
+- Full independence between all (rank, thread) pairs
+- Zero communication or synchronization for RNG management
+- Scalable generation suitable for large HPC systems
+
+The spacing of 1000 between ranks assumes fewer than 1000 threads per process, which is far above typical HPC configurations. Because every thread owns its own RNG instance, **no critical sections or locks are required**, ensuring maximal OpenMP throughput.
 
 ## Optimization Strategy
 
-The hybrid MPI+OpenMP implementation employs a multi-layered optimization strategy for distributed parallel efficiency:
+The hybrid MPI + OpenMP implementation applies complementary optimization methods at both distributed-memory and shared-memory levels.
 
-**Inter-Node Optimization (MPI Layer):**
+### Inter-Node Optimization (MPI Layer)
 
-- Well-balanced load: Monte Carlo trials distributed across MPI processes using a block + remainder scheme (ranks may differ by at most one trial).
-- Minimal communication: Three collective operations per simulation (reduce count, gather S_values, reduce max kernel time)
-- Replicated data strategy: Small problem data (Sigma, mu) replicated across processes to eliminate communication during computation
-- Non-blocking MPI operations: Uses MPI_Ireduce and MPI_Igatherv for efficient aggregation
+- **Balanced load distribution:** Trials are evenly allocated using block + remainder.
+- **Minimal communication:** Only two collective reductions are performed per simulation.
+- **Replicated-data model:** Sigma and mu are broadcast implicitly by duplication, avoiding communication during compute.
+- **Memory-efficient aggregation:** The MPI version does **not** gather per-trial results (S_values), drastically reducing memory and bandwidth requirements.
+- **Non-blocking collectives:** MPI_Ireduce + MPI_Waitall minimize global synchronization time.
 
-**Intra-Node Optimization (OpenMP Layer):**
+### Intra-Node Optimization (OpenMP Layer)
 
-- Per-thread RNGs (no critical sections): Each OpenMP thread within each MPI process owns an independent gsl_rng instance, enabling fully parallel random number generation within nodes
-- Thread-local workspace allocation: Z and R vectors allocated per thread within the parallel region, eliminating repeated allocation overhead
-- Static scheduling: Trials distributed to threads in contiguous blocks for optimal cache locality within each node
+- **Per-thread RNGs:** Eliminates thread contention and synchronization.
+- **Thread-local workspace:** Vectors Z and R are allocated once per thread, avoiding repeat allocations.
+- **Static scheduling:** Ensures cache-friendly access patterns and balanced thread workloads.
+- **OpenMP reduction:** Efficiently accumulates per-thread extreme event counts.
+
+### Scalability Benefits
+
+- **No memory explosion:** Avoiding S_values collection keeps memory usage proportional to O(N), not O(M).
+- **Low communication volume:** Only two scalar reductions regardless of M.
+- **Massive parallel potential:** Supports hundreds of MPI ranks × dozens of threads per rank without communication bottlenecks.
+- **Excellent for large M:** Designed specifically for multi-node clusters executing millions or billions of trials.
