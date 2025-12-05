@@ -2,10 +2,23 @@
 # Compiles serial, OpenMP, MPI+OpenMP, and CUDA implementations
 
 # Compiler and flags
-CC = mpicc
+
+MPI_AVAILABLE = $(shell which mpicc > /dev/null 2>&1 && echo yes || echo)
+ifeq ($(MPI_AVAILABLE),yes)
+    CC = mpicc
+    BASE_CFLAGS = -Wall -Wextra -O3 -std=c11 -DSERIAL_BUILD -DOPENMP_BUILD -DOPENMP_OPT_BUILD -DMPI_OPENMP_BUILD
+    $(info Using mpicc with MPI support enabled)
+else
+    # Fallback to system compiler
+    CC = $(shell which clang > /dev/null 2>&1 && echo clang || echo gcc)
+    BASE_CFLAGS = -Wall -Wextra -O3 -std=c11 -DSERIAL_BUILD -DOPENMP_BUILD -DOPENMP_OPT_BUILD
+    $(warning MPI not available - building without MPI support)
+endif
+
+
 NVCC = nvcc
 CFLAGS = -Wall -Wextra -O3 -std=c11 -DSERIAL_BUILD -DOPENMP_BUILD -DOPENMP_OPT_BUILD -DMPI_OPENMP_BUILD
-OMPFLAGS = -Xclang -fopenmp
+OMPFLAGS = -fopenmp
 NVCCFLAGS = -O3 -arch=sm_60 -Xcompiler -fPIC
 CUDA_LDFLAGS = -lcudart -lcurand
 
