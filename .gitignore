@@ -160,7 +160,6 @@ venv.bak/
 *.npy
 *.npz
 data/
-results/
 output/
 simulation_results/
 benchmark_data/
@@ -294,11 +293,5 @@ gpu_memory_*.dump
 *.generated.*
 auto_*
 
-
-
-
-!data/mu.bin
-!data/params.bin  
-!data/sigma.bin
 
 

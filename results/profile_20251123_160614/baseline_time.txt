@@ -1,0 +1,63 @@
+Monte Carlo Financial Risk Simulation
+
+Loading parameters from binary files...
+Loaded mu (N=9) from data/mu.bin
+Loaded Sigma (9x9) from data/sigma.bin
+Loaded actual_freq (0.011696) from data/params.bin
+Loaded configuration from config.yaml
+  Date range: 2015-01-01 to 2025-12-31
+  M = 100000 (Monte Carlo trials)
+  x = 0.0200 (return threshold)
+  k = 5 (crash threshold)
+  random_seed = 67
+  train_ratio = 0.8000
+  Number of indices: 9
+  Number of models: 1
+    - openmp
+  Comment: Default configuration for Monte Carlo risk analysis with GPU acceleration
+
+Simulation Configuration:
+  Number of assets (N): 9
+  Crash threshold (k): 5
+  Return threshold (x): 2.00%
+  Number of trials (M): 100000
+  Training ratio: 80.00%
+
+=== Running openmp model ===
+Starting OPENMP Monte Carlo simulation with M = 100000 trials...
+Parameters: N=9, k=5, x=2.00%
+Using 2 OpenMP threads with shared RNG
+Simulation complete
+  Kernel time: 71.127 ms
+
+openmp RESULTS
+Estimated Probability (P_MIN): 0.040480
+Extreme Events Count: 4048 out of 100000 trials
+Standard Error: 0.000623
+95% Confidence Interval: [0.039258, 0.041702]
+Results written to results/simulation_results.csv
+
+Simulation complete.
+	Command being timed: "srun --ntasks=1 --cpus-per-task=2 --cpu-bind=cores /scratch/user29/gpu-montecarlo-risk/bin/monte_carlo"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 5%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.27
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 8320
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 1333
+	Voluntary context switches: 38
+	Involuntary context switches: 21
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,852 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 264  of event 'cpu-clock:u'
+# Event count (approx.): 66000000
+#
+# Children      Self  Command      Shared Object            Symbol                           
+# ........  ........  ...........  .......................  .................................
+#
+    95.45%     4.92%  monte_carlo  monte_carlo              [.] openmp_opt_simulate._omp_fn.0
+            |          
+            |--90.53%--openmp_opt_simulate._omp_fn.0
+            |          |          
+            |           --90.15%--openmp_run_trial (inlined)
+            |                     |          
+            |                     |--64.02%--gsl_ran_gaussian
+            |                     |          |          
+            |                     |          |--20.08%--mt_get_double
+            |                     |          |          |          
+            |                     |          |           --10.61%--mt_get
+            |                     |          |          
+            |                     |          |--2.27%--0x1519fcf24599
+            |                     |          |          
+            |                     |          |--1.89%--0x1519fcf245a3
+            |                     |          |          
+            |                     |          |--1.14%--0x1519fcf24572
+            |                     |          |          
+            |                     |          |--1.14%--0x1519fcf2455b
+            |                     |          |          
+            |                     |          |--1.14%--0x1519fcf24542
+            |                     |          |          
+            |                     |          |--0.76%--0x1519fcf24682
+            |                     |          |          
+            |                     |          |--0.76%--0x1519fcf245cb
+            |                     |          |          
+            |                     |          |--0.76%--0x1519fcf2457a
+            |                     |          |          
+            |                     |          |--0.76%--0x1519fcf24576
+            |                     |          |          
+            |                     |          |--0.76%--0x1519fcf24561
+            |                     |          |          
+            |                     |          |--0.76%--0x1519fcf2452d
+            |                     |          |          
+            |                     |           --0.76%--0x1519fcf24500
+            |                     |          
+            |                     |--21.59%--gsl_blas_dgemv
+            |                     |          |          
+            |                     |           --21.21%--cblas_dgemv
+            |                     |          
+            |                     |--1.52%--gsl_vector_set
+            |                     |          
+            |                     |--1.14%--gsl_vector_add
+            |                     |          
+            |                     |--1.14%--gsl_vector_get
+            |                     |          
+            |                      --0.76%--gsl_ran_gaussian@plt
+            |          
+            |--3.03%--_start
+            |          __libc_start_main
+            |          0x1519fc7f9949
+            |          main
+            |          openmp_opt_simulate
+            |          GOMP_parallel
+            |          openmp_opt_simulate._omp_fn.0
+            |          |          
+            |           --2.65%--openmp_run_trial (inlined)
+            |          
+             --1.89%--0x1519fc8db09b
+                       0x1519fc85aa9c
+                       0x1519fc9cc43f
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+
+    94.70%     0.00%  monte_carlo  monte_carlo              [.] openmp_run_trial (inlined)
+            |
+            ---openmp_run_trial (inlined)
+               |          
+               |--64.02%--gsl_ran_gaussian
+               |          |          
+               |          |--20.08%--mt_get_double
+               |          |          |          
+               |          |           --10.61%--mt_get
+               |          |          
+               |          |--2.27%--0x1519fcf24599
+               |          |          
+               |          |--1.89%--0x1519fcf245a3
+               |          |          
+               |          |--1.14%--0x1519fcf24572
+               |          |          
+               |          |--1.14%--0x1519fcf2455b
+               |          |          
+               |          |--1.14%--0x1519fcf24542
+               |          |          
+               |          |--0.76%--0x1519fcf24682
+               |          |          
+               |          |--0.76%--0x1519fcf245cb
+               |          |          
+               |          |--0.76%--0x1519fcf2457a
+               |          |          
+               |          |--0.76%--0x1519fcf24576
+               |          |          
+               |          |--0.76%--0x1519fcf24561
+               |          |          
+               |          |--0.76%--0x1519fcf2452d
+               |          |          
+               |           --0.76%--0x1519fcf24500
+               |          
+               |--21.59%--gsl_blas_dgemv
+               |          |          
+               |           --21.21%--cblas_dgemv
+               |          
+               |--1.52%--gsl_vector_set
+               |          
+               |--1.14%--gsl_vector_add
+               |          
+               |--1.14%--gsl_vector_get
+               |          
+                --0.76%--gsl_ran_gaussian@plt
+
+    64.02%    28.79%  monte_carlo  libgsl.so.25.1.0         [.] gsl_ran_gaussian
+            |          
+            |--35.23%--gsl_ran_gaussian
+            |          |          
+            |          |--20.08%--mt_get_double
+            |          |          |          
+            |          |           --10.61%--mt_get
+            |          |          
+            |          |--2.27%--0x1519fcf24599
+            |          |          
+            |          |--1.89%--0x1519fcf245a3
+            |          |          
+            |          |--1.14%--0x1519fcf24572
+            |          |          
+            |          |--1.14%--0x1519fcf2455b
+            |          |          
+            |          |--1.14%--0x1519fcf24542
+            |          |          
+            |          |--0.76%--0x1519fcf24682
+            |          |          
+            |          |--0.76%--0x1519fcf245cb
+            |          |          
+            |          |--0.76%--0x1519fcf2457a
+            |          |          
+            |          |--0.76%--0x1519fcf24576
+            |          |          
+            |          |--0.76%--0x1519fcf24561
+            |          |          
+            |          |--0.76%--0x1519fcf2452d
+            |          |          
+            |           --0.76%--0x1519fcf24500
+            |          
+            |--15.53%--_start
+            |          __libc_start_main
+            |          0x1519fc7f9949
+            |          main
+            |          openmp_opt_simulate
+            |          GOMP_parallel
+            |          openmp_opt_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          gsl_ran_gaussian
+            |          
+             --13.26%--0x1519fc8db09b
+                       0x1519fc85aa9c
+                       0x1519fc9cc43f
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+
+    51.52%     0.00%  monte_carlo  libc.so.6                [.] 0x00001519fc8db09b
+            |
+            ---0x1519fc8db09b
+               0x1519fc85aa9c
+               |          
+               |--48.48%--0x1519fc9cc43f
+               |          openmp_opt_simulate._omp_fn.0
+               |          openmp_run_trial (inlined)
+               |          |          
+               |          |--31.82%--gsl_ran_gaussian
+               |          |          |          
+               |          |          |--10.61%--mt_get_double
+               |          |          |          |          
+               |          |          |           --5.30%--mt_get
+               |          |          |          
+               |          |          |--1.52%--0x1519fcf24599
+               |          |          |          
+               |          |          |--0.76%--0x1519fcf2457a
+               |          |          |          
+               |          |          |--0.76%--0x1519fcf2455b
+               |          |          |          
+               |          |          |--0.76%--0x1519fcf2452d
+               |          |          |          
+               |          |           --0.76%--0x1519fcf24500
+               |          |          
+               |          |--13.26%--gsl_blas_dgemv
+               |          |          cblas_dgemv
+               |          |          
+               |           --0.76%--gsl_vector_get
+               |          
+                --3.03%--0x1519fc9cc419
+                          |          
+                          |--1.52%--0x1519fc9cf186
+                          |          
+                           --0.76%--0x1519fc9cf182
+
+    51.52%     0.00%  monte_carlo  libc.so.6                [.] 0x00001519fc85aa9c
+            |
+            ---0x1519fc85aa9c
+               |          
+               |--48.48%--0x1519fc9cc43f
+               |          openmp_opt_simulate._omp_fn.0
+               |          openmp_run_trial (inlined)
+               |          |          
+               |          |--31.82%--gsl_ran_gaussian
+               |          |          |          
+               |          |          |--10.61%--mt_get_double
+               |          |          |          |          
+               |          |          |           --5.30%--mt_get
+               |          |          |          
+               |          |          |--1.52%--0x1519fcf24599
+               |          |          |          
+               |          |          |--0.76%--0x1519fcf2457a
+               |          |          |          
+               |          |          |--0.76%--0x1519fcf2455b
+               |          |          |          
+               |          |          |--0.76%--0x1519fcf2452d
+               |          |          |          
+               |          |           --0.76%--0x1519fcf24500
+               |          |          
+               |          |--13.26%--gsl_blas_dgemv
+               |          |          cblas_dgemv
+               |          |          
+               |           --0.76%--gsl_vector_get
+               |          
+                --3.03%--0x1519fc9cc419
+                          |          
+                          |--1.52%--0x1519fc9cf186
+                          |          
+                           --0.76%--0x1519fc9cf182
+
+    48.48%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x00001519fc9cc43f
+            |
+            ---0x1519fc9cc43f
+               openmp_opt_simulate._omp_fn.0
+               openmp_run_trial (inlined)
+               |          
+               |--31.82%--gsl_ran_gaussian
+               |          |          
+               |          |--10.61%--mt_get_double
+               |          |          |          
+               |          |           --5.30%--mt_get
+               |          |          
+               |          |--1.52%--0x1519fcf24599
+               |          |          
+               |          |--0.76%--0x1519fcf2457a
+               |          |          
+               |          |--0.76%--0x1519fcf2455b
+               |          |          
+               |          |--0.76%--0x1519fcf2452d
+               |          |          
+               |           --0.76%--0x1519fcf24500
+               |          
+               |--13.26%--gsl_blas_dgemv
+               |          cblas_dgemv
+               |          
+                --0.76%--gsl_vector_get
+
+    46.97%     0.00%  monte_carlo  monte_carlo              [.] _start
+            |
+            ---_start
+               __libc_start_main
+               0x1519fc7f9949
+               main
+               openmp_opt_simulate
+               GOMP_parallel
+               openmp_opt_simulate._omp_fn.0
+               |          
+                --46.21%--openmp_run_trial (inlined)
+                          |          
+                          |--32.20%--gsl_ran_gaussian
+                          |          |          
+                          |          |--9.47%--mt_get_double
+                          |          |          |          
+                          |          |           --5.30%--mt_get
+                          |          |          
+                          |          |--1.52%--0x1519fcf245a3
+                          |          |          
+                          |          |--0.76%--0x1519fcf245cb
+                          |          |          
+                          |          |--0.76%--0x1519fcf24599
+                          |          |          
+                          |          |--0.76%--0x1519fcf24572
+                          |          |          
+                          |          |--0.76%--0x1519fcf24561
+                          |          |          
+                          |           --0.76%--0x1519fcf24542
+                          |          
+                          |--8.33%--gsl_blas_dgemv
+                          |          |          
+                          |           --7.95%--cblas_dgemv
+                          |          
+                          |--1.14%--gsl_vector_add
+                          |          
+                           --1.14%--gsl_vector_set
+
+    46.97%     0.00%  monte_carlo  libc.so.6                [.] __libc_start_main
+            |
+            ---__libc_start_main
+               0x1519fc7f9949
+               main
+               openmp_opt_simulate
+               GOMP_parallel
+               openmp_opt_simulate._omp_fn.0
+               |          
+                --46.21%--openmp_run_trial (inlined)
+                          |          
+                          |--32.20%--gsl_ran_gaussian
+                          |          |          
+                          |          |--9.47%--mt_get_double
+                          |          |          |          
+                          |          |           --5.30%--mt_get
+                          |          |          
+                          |          |--1.52%--0x1519fcf245a3
+                          |          |          
+                          |          |--0.76%--0x1519fcf245cb
+                          |          |          
+                          |          |--0.76%--0x1519fcf24599
+                          |          |          
+                          |          |--0.76%--0x1519fcf24572
+                          |          |          
+                          |          |--0.76%--0x1519fcf24561
+                          |          |          
+                          |           --0.76%--0x1519fcf24542
+                          |          
+                          |--8.33%--gsl_blas_dgemv
+                          |          |          
+                          |           --7.95%--cblas_dgemv
+                          |          
+                          |--1.14%--gsl_vector_add
+                          |          
+                           --1.14%--gsl_vector_set
+
+    46.97%     0.00%  monte_carlo  libc.so.6                [.] 0x00001519fc7f9949
+            |
+            ---0x1519fc7f9949
+               main
+               openmp_opt_simulate
+               GOMP_parallel
+               openmp_opt_simulate._omp_fn.0
+               |          
+                --46.21%--openmp_run_trial (inlined)
+                          |          
+                          |--32.20%--gsl_ran_gaussian
+                          |          |          
+                          |          |--9.47%--mt_get_double
+                          |          |          |          
+                          |          |           --5.30%--mt_get
+                          |          |          
+                          |          |--1.52%--0x1519fcf245a3
+                          |          |          
+                          |          |--0.76%--0x1519fcf245cb
+                          |          |          
+                          |          |--0.76%--0x1519fcf24599
+                          |          |          
+                          |          |--0.76%--0x1519fcf24572
+                          |          |          
+                          |          |--0.76%--0x1519fcf24561
+                          |          |          
+                          |           --0.76%--0x1519fcf24542
+                          |          
+                          |--8.33%--gsl_blas_dgemv
+                          |          |          
+                          |           --7.95%--cblas_dgemv
+                          |          
+                          |--1.14%--gsl_vector_add
+                          |          
+                           --1.14%--gsl_vector_set
+
+    46.97%     0.00%  monte_carlo  monte_carlo              [.] main
+            |
+            ---main
+               openmp_opt_simulate
+               GOMP_parallel
+               openmp_opt_simulate._omp_fn.0
+               |          
+                --46.21%--openmp_run_trial (inlined)
+                          |          
+                          |--32.20%--gsl_ran_gaussian
+                          |          |          
+                          |          |--9.47%--mt_get_double
+                          |          |          |          
+                          |          |           --5.30%--mt_get
+                          |          |          
+                          |          |--1.52%--0x1519fcf245a3
+                          |          |          
+                          |          |--0.76%--0x1519fcf245cb
+                          |          |          
+                          |          |--0.76%--0x1519fcf24599
+                          |          |          
+                          |          |--0.76%--0x1519fcf24572
+                          |          |          
+                          |          |--0.76%--0x1519fcf24561
+                          |          |          
+                          |           --0.76%--0x1519fcf24542
+                          |          
+                          |--8.33%--gsl_blas_dgemv
+                          |          |          
+                          |           --7.95%--cblas_dgemv
+                          |          
+                          |--1.14%--gsl_vector_add
+                          |          
+                           --1.14%--gsl_vector_set
+
+    46.97%     0.00%  monte_carlo  monte_carlo              [.] openmp_opt_simulate
+            |
+            ---openmp_opt_simulate
+               GOMP_parallel
+               openmp_opt_simulate._omp_fn.0
+               |          
+                --46.21%--openmp_run_trial (inlined)
+                          |          
+                          |--32.20%--gsl_ran_gaussian
+                          |          |          
+                          |          |--9.47%--mt_get_double
+                          |          |          |          
+                          |          |           --5.30%--mt_get
+                          |          |          
+                          |          |--1.52%--0x1519fcf245a3
+                          |          |          
+                          |          |--0.76%--0x1519fcf245cb
+                          |          |          
+                          |          |--0.76%--0x1519fcf24599
+                          |          |          
+                          |          |--0.76%--0x1519fcf24572
+                          |          |          
+                          |          |--0.76%--0x1519fcf24561
+                          |          |          
+                          |           --0.76%--0x1519fcf24542
+                          |          
+                          |--8.33%--gsl_blas_dgemv
+                          |          |          
+                          |           --7.95%--cblas_dgemv
+                          |          
+                          |--1.14%--gsl_vector_add
+                          |          
+                           --1.14%--gsl_vector_set
+
+    46.97%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] GOMP_parallel
+            |
+            ---GOMP_parallel
+               openmp_opt_simulate._omp_fn.0
+               |          
+                --46.21%--openmp_run_trial (inlined)
+                          |          
+                          |--32.20%--gsl_ran_gaussian
+                          |          |          
+                          |          |--9.47%--mt_get_double
+                          |          |          |          
+                          |          |           --5.30%--mt_get
+                          |          |          
+                          |          |--1.52%--0x1519fcf245a3
+                          |          |          
+                          |          |--0.76%--0x1519fcf245cb
+                          |          |          
+                          |          |--0.76%--0x1519fcf24599
+                          |          |          
+                          |          |--0.76%--0x1519fcf24572
+                          |          |          
+                          |          |--0.76%--0x1519fcf24561
+                          |          |          
+                          |           --0.76%--0x1519fcf24542
+                          |          
+                          |--8.33%--gsl_blas_dgemv
+                          |          |          
+                          |           --7.95%--cblas_dgemv
+                          |          
+                          |--1.14%--gsl_vector_add
+                          |          
+                           --1.14%--gsl_vector_set
+
+    21.59%     0.38%  monte_carlo  libgsl.so.25.1.0         [.] gsl_blas_dgemv
+            |          
+             --21.21%--gsl_blas_dgemv
+                       cblas_dgemv
+
+    21.21%    21.21%  monte_carlo  libgslcblas.so.0.0.0     [.] cblas_dgemv
+            |          
+            |--13.26%--0x1519fc8db09b
+            |          0x1519fc85aa9c
+            |          0x1519fc9cc43f
+            |          openmp_opt_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          gsl_blas_dgemv
+            |          cblas_dgemv
+            |          
+             --7.95%--_start
+                       __libc_start_main
+                       0x1519fc7f9949
+                       main
+                       openmp_opt_simulate
+                       GOMP_parallel
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_blas_dgemv
+                       cblas_dgemv
+
+    20.08%     9.47%  monte_carlo  libgsl.so.25.1.0         [.] mt_get_double
+            |          
+            |--10.61%--mt_get_double
+            |          mt_get
+            |          
+            |--5.30%--0x1519fc8db09b
+            |          0x1519fc85aa9c
+            |          0x1519fc9cc43f
+            |          openmp_opt_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          gsl_ran_gaussian
+            |          mt_get_double
+            |          
+             --4.17%--_start
+                       __libc_start_main
+                       0x1519fc7f9949
+                       main
+                       openmp_opt_simulate
+                       GOMP_parallel
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       mt_get_double
+
+    10.61%    10.61%  monte_carlo  libgsl.so.25.1.0         [.] mt_get
+            |          
+            |--5.30%--0x1519fc8db09b
+            |          0x1519fc85aa9c
+            |          0x1519fc9cc43f
+            |          openmp_opt_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          gsl_ran_gaussian
+            |          mt_get_double
+            |          mt_get
+            |          
+             --5.30%--_start
+                       __libc_start_main
+                       0x1519fc7f9949
+                       main
+                       openmp_opt_simulate
+                       GOMP_parallel
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       mt_get_double
+                       mt_get
+
+     3.03%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x00001519fc9cc419
+            |
+            ---0x1519fc9cc419
+               |          
+               |--1.52%--0x1519fc9cf186
+               |          
+                --0.76%--0x1519fc9cf182
+
+     2.27%     2.27%  monte_carlo  libm.so.6                [.] 0x0000000000068599
+            |          
+            |--1.52%--0x1519fc8db09b
+            |          0x1519fc85aa9c
+            |          0x1519fc9cc43f
+            |          openmp_opt_simulate._omp_fn.0
+            |          openmp_run_trial (inlined)
+            |          gsl_ran_gaussian
+            |          0x1519fcf24599
+            |          
+             --0.76%--_start
+                       __libc_start_main
+                       0x1519fc7f9949
+                       main
+                       openmp_opt_simulate
+                       GOMP_parallel
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       0x1519fcf24599
+
+     2.27%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf24599
+            |
+            ---0x1519fcf24599
+
+     1.89%     1.89%  monte_carlo  libm.so.6                [.] 0x00000000000685a3
+            |          
+             --1.52%--_start
+                       __libc_start_main
+                       0x1519fc7f9949
+                       main
+                       openmp_opt_simulate
+                       GOMP_parallel
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       0x1519fcf245a3
+
+     1.89%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf245a3
+            |
+            ---0x1519fcf245a3
+
+     1.52%     1.52%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000024186
+            |
+            ---0x1519fc8db09b
+               0x1519fc85aa9c
+               0x1519fc9cc419
+               0x1519fc9cf186
+
+     1.52%     1.52%  monte_carlo  libgsl.so.25.1.0         [.] gsl_vector_set
+            |          
+             --1.14%--_start
+                       __libc_start_main
+                       0x1519fc7f9949
+                       main
+                       openmp_opt_simulate
+                       GOMP_parallel
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_vector_set
+
+     1.52%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd08f827
+            |
+            ---0x1519fd08f827
+               0x1519fd0909ac
+               |          
+                --1.14%--0x1519fd08f25e
+
+     1.52%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd0909ac
+            |
+            ---0x1519fd0909ac
+               |          
+                --1.14%--0x1519fd08f25e
+
+     1.52%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x00001519fc9cf186
+            |
+            ---0x1519fc9cf186
+
+     1.14%     1.14%  monte_carlo  libgsl.so.25.1.0         [.] gsl_vector_add
+            |
+            ---_start
+               __libc_start_main
+               0x1519fc7f9949
+               main
+               openmp_opt_simulate
+               GOMP_parallel
+               openmp_opt_simulate._omp_fn.0
+               openmp_run_trial (inlined)
+               gsl_vector_add
+
+     1.14%     1.14%  monte_carlo  libm.so.6                [.] 0x000000000006855b
+            |          
+             --0.76%--0x1519fc8db09b
+                       0x1519fc85aa9c
+                       0x1519fc9cc43f
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       0x1519fcf2455b
+
+     1.14%     1.14%  monte_carlo  libm.so.6                [.] 0x0000000000068572
+            |          
+             --0.76%--_start
+                       __libc_start_main
+                       0x1519fc7f9949
+                       main
+                       openmp_opt_simulate
+                       GOMP_parallel
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       0x1519fcf24572
+
+     1.14%     1.14%  monte_carlo  libgsl.so.25.1.0         [.] gsl_vector_get
+            |          
+             --0.76%--0x1519fc8db09b
+                       0x1519fc85aa9c
+                       0x1519fc9cc43f
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_vector_get
+
+     1.14%     1.14%  monte_carlo  libm.so.6                [.] 0x0000000000068542
+            |          
+             --0.76%--_start
+                       __libc_start_main
+                       0x1519fc7f9949
+                       main
+                       openmp_opt_simulate
+                       GOMP_parallel
+                       openmp_opt_simulate._omp_fn.0
+                       openmp_run_trial (inlined)
+                       gsl_ran_gaussian
+                       0x1519fcf24542
+
+     1.14%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd08f25e
+            |
+            ---0x1519fd08f25e
+
+     1.14%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf24542
+            |
+            ---0x1519fcf24542
+
+     1.14%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf2455b
+            |
+            ---0x1519fcf2455b
+
+     1.14%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf24572
+            |
+            ---0x1519fcf24572
+
+     0.76%     0.76%  monte_carlo  libm.so.6                [.] 0x0000000000068576
+     0.76%     0.76%  monte_carlo  libm.so.6                [.] 0x0000000000068682
+     0.76%     0.76%  monte_carlo  libm.so.6                [.] 0x0000000000068500
+            |
+            ---0x1519fc8db09b
+               0x1519fc85aa9c
+               0x1519fc9cc43f
+               openmp_opt_simulate._omp_fn.0
+               openmp_run_trial (inlined)
+               gsl_ran_gaussian
+               0x1519fcf24500
+
+     0.76%     0.76%  monte_carlo  libm.so.6                [.] 0x000000000006852d
+            |
+            ---0x1519fc8db09b
+               0x1519fc85aa9c
+               0x1519fc9cc43f
+               openmp_opt_simulate._omp_fn.0
+               openmp_run_trial (inlined)
+               gsl_ran_gaussian
+               0x1519fcf2452d
+
+     0.76%     0.76%  monte_carlo  libm.so.6                [.] 0x000000000006857a
+            |
+            ---0x1519fc8db09b
+               0x1519fc85aa9c
+               0x1519fc9cc43f
+               openmp_opt_simulate._omp_fn.0
+               openmp_run_trial (inlined)
+               gsl_ran_gaussian
+               0x1519fcf2457a
+
+     0.76%     0.76%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000024182
+            |
+            ---0x1519fc8db09b
+               0x1519fc85aa9c
+               0x1519fc9cc419
+               0x1519fc9cf182
+
+     0.76%     0.76%  monte_carlo  libm.so.6                [.] 0x0000000000068561
+            |
+            ---_start
+               __libc_start_main
+               0x1519fc7f9949
+               main
+               openmp_opt_simulate
+               GOMP_parallel
+               openmp_opt_simulate._omp_fn.0
+               openmp_run_trial (inlined)
+               gsl_ran_gaussian
+               0x1519fcf24561
+
+     0.76%     0.76%  monte_carlo  libm.so.6                [.] 0x00000000000685cb
+            |
+            ---_start
+               __libc_start_main
+               0x1519fc7f9949
+               main
+               openmp_opt_simulate
+               GOMP_parallel
+               openmp_opt_simulate._omp_fn.0
+               openmp_run_trial (inlined)
+               gsl_ran_gaussian
+               0x1519fcf245cb
+
+     0.76%     0.76%  monte_carlo  monte_carlo              [.] gsl_ran_gaussian@plt
+     0.76%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x00001519fc9cf182
+            |
+            ---0x1519fc9cf182
+
+     0.76%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf24500
+            |
+            ---0x1519fcf24500
+
+     0.76%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf2452d
+            |
+            ---0x1519fcf2452d
+
+     0.76%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf24561
+            |
+            ---0x1519fcf24561
+
+     0.76%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf24576
+            |
+            ---0x1519fcf24576
+
+     0.76%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf2457a
+            |
+            ---0x1519fcf2457a
+
+     0.76%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf245cb
+            |
+            ---0x1519fcf245cb
+
+     0.76%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf24682
+            |
+            ---0x1519fcf24682
+
+     0.38%     0.38%  monte_carlo  libm.so.6                [.] 0x000000000006856a
+     0.38%     0.38%  monte_carlo  libm.so.6                [.] 0x0000000000068583
+     0.38%     0.38%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00000000000070d9
+     0.38%     0.38%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x0000000000009517
+     0.38%     0.38%  monte_carlo  libgomp.so.1.0.0         [.] 0x0000000000024322
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd092741
+     0.38%     0.38%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x000000000001938e
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd077c84
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd092a60
+     0.38%     0.38%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x0000000000015e26
+     0.38%     0.38%  monte_carlo  libm.so.6                [.] __log_finite@plt
+     0.38%     0.38%  monte_carlo  libm.so.6                [.] 0x00000000000684cc
+     0.38%     0.38%  monte_carlo  libm.so.6                [.] 0x00000000000685a7
+     0.38%     0.38%  monte_carlo  libm.so.6                [.] 0x00000000000685ba
+     0.38%     0.38%  monte_carlo  libgomp.so.1.0.0         [.] 0x000000000002418b
+     0.38%     0.38%  monte_carlo  libgomp.so.1.0.0         [.] 0x000000000002418d
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] _dl_catch_exception
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd083d50
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd077800
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd07f3d7
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd07da14
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd07ea69
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd08f213
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd093686
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd07c0d9
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd07e517
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd08ae26
+     0.38%     0.00%  monte_carlo  ld-linux-x86-64.so.2.37  [.] 0x00001519fd08e38e
+     0.38%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x00001519fc9cf18b
+     0.38%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x00001519fc9cf18d
+     0.38%     0.00%  monte_carlo  libgomp.so.1.0.0         [.] 0x00001519fc9cf322
+     0.38%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf244cc
+     0.38%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf2456a
+     0.38%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf24583
+     0.38%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf245a7
+     0.38%     0.00%  monte_carlo  libm.so.6                [.] 0x00001519fcf245ba
+
+
+#
+# (Tip: Use parent filter to see specific call path: perf report -p <regex>)
+#
