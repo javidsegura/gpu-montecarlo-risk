@@ -27,7 +27,6 @@ __constant__ double c_L[64 * 64];
 
 // Optimized kernel with constant memory, faster RNG, and manual unrolling
 __global__ void monte_carlo_kernel_optimized(int M, int N, int k, double x, 
-                                             const double *d_mu, const double *d_L, 
                                              unsigned long seed, int *d_S_values, 
                                              int *d_count_reduction) {
     // Shared memory for block-level reduction of count
@@ -261,12 +260,9 @@ extern "C" int cuda_simulate(MonteCarloParams *params, MonteCarloResult *result)
     }
 
     // 2. Allocate Device Memory
-    // Note: d_mu and d_L are kept for fallback, but we'll use constant memory
-    double *d_mu, *d_L;
+    // Note: Using constant memory (c_mu, c_L) for data access, so no need for d_mu/d_L
     int *d_S_values, *d_count;
     
-    if (cudaMalloc(&d_mu, params->N * sizeof(double)) != cudaSuccess) return -1;
-    if (cudaMalloc(&d_L, params->N * params->N * sizeof(double)) != cudaSuccess) return -1;
     if (cudaMalloc(&d_S_values, params->M * sizeof(int)) != cudaSuccess) return -1;
     if (cudaMalloc(&d_count, sizeof(int)) != cudaSuccess) return -1;
 
@@ -275,9 +271,6 @@ extern "C" int cuda_simulate(MonteCarloParams *params, MonteCarloResult *result)
     cudaEventRecord(start_memcpy_h2d);
     cudaMemcpyToSymbol(c_mu, h_mu_flat, params->N * sizeof(double), 0, cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(c_L, h_L_flat, params->N * params->N * sizeof(double), 0, cudaMemcpyHostToDevice);
-    // Also copy to global memory as fallback (though kernel uses constant memory)
-    cudaMemcpy(d_mu, h_mu_flat, params->N * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_L, h_L_flat, params->N * params->N * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemset(d_count, 0, sizeof(int));
     cudaEventRecord(stop_memcpy_h2d);
     cudaEventSynchronize(stop_memcpy_h2d);
@@ -288,7 +281,7 @@ extern "C" int cuda_simulate(MonteCarloParams *params, MonteCarloResult *result)
     
     cudaEventRecord(start_kernel);
     monte_carlo_kernel_optimized<<<numBlocks, blockSize>>>(params->M, params->N, params->k, params->x, 
-                                                          d_mu, d_L, params->random_seed, 
+                                                          params->random_seed, 
                                                           d_S_values, d_count);
     cudaEventRecord(stop_kernel);
     cudaEventSynchronize(stop_kernel);
@@ -349,8 +342,6 @@ extern "C" int cuda_simulate(MonteCarloParams *params, MonteCarloResult *result)
     result->ci_upper = fmin(1.0, result->P_hat + margin);
 
     // Cleanup
-    cudaFree(d_mu);
-    cudaFree(d_L);
     cudaFree(d_S_values);
     cudaFree(d_count);
     free(h_mu_flat);
