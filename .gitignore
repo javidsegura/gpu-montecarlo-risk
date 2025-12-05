@@ -153,16 +153,13 @@ venv.bak/
 
 # Data files (common in Monte Carlo projects)
 *.dat
-*.csv
 *.h5
 *.hdf5
 *.nc
 *.npy
 *.npz
 data/
-results/
 output/
-simulation_results/
 benchmark_data/
 
 # Large binary files
